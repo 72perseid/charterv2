@@ -1,5 +1,12 @@
 import pytest
+from cryptography.fernet import Fernet
 from django.test import Client
+
+
+@pytest.fixture(autouse=True)
+def test_fernet_key(settings):
+    """Tests never depend on the operator's key; each session gets a fresh one."""
+    settings.FERNET_KEY = Fernet.generate_key().decode()
 
 
 @pytest.fixture(autouse=True)
