@@ -218,6 +218,7 @@ export type Revision = RevisionSummary & {
     adjustments: string[];
     pricing?: { input_per_million: number | null; output_per_million: number | null };
   } | null;
+  cost_at_current_prices: number | null;
   response_text: string | null;
   endpoint_host: string;
   temperature: number | null;

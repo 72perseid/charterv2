@@ -39,6 +39,7 @@
   }
 
   const pretty = (value: unknown) => JSON.stringify(value, null, 2);
+  const money = (usd: number) => '$' + (usd < 0.01 ? usd.toFixed(5) : usd.toFixed(3));
 </script>
 
 <svelte:head><title>{chart.title} · {t.appName}</title></svelte:head>
@@ -116,7 +117,9 @@
           <dt>{s.record.cost}</dt>
           <dd>
             {#if rev.cost_usd !== null}
-              ${rev.cost_usd < 0.01 ? rev.cost_usd.toFixed(5) : rev.cost_usd.toFixed(3)}
+              {money(rev.cost_usd)}
+            {:else if rev.cost_at_current_prices !== null}
+              {money(rev.cost_at_current_prices)} <span class="muted">({s.record.costAtCurrent})</span>
             {:else}<span class="muted">{s.record.costUnknown}</span>{/if}
           </dd>
           <dt>{s.record.attempt}</dt><dd>{rev.request?.attempt ?? rev.attempts}</dd>

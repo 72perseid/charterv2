@@ -20,6 +20,7 @@ from charts.schemas import (
     RevisionOut,
 )
 from datasets.models import Dataset
+from generation.tasks import estimate_cost
 
 router = Router(tags=["charts"])
 revisions_router = Router(tags=["revisions"])
@@ -161,10 +162,25 @@ def create_revision(request: HttpRequest, chart_id: int, data: RevisionIn):
             color_field=data.color_field or None,
             prompt=data.prompt.strip(),
         )
-    return 201, revision
+    return 201, revision_out(revision, request.user)
+
+
+def revision_out(revision: ChartRevision, user) -> dict:
+    """Adds an estimate at today's prices for revisions that ran before any
+    price was entered. Never written back: the stored cost stays authoritative."""
+    out = {field.name: getattr(revision, field.name) for field in ChartRevision._meta.fields}
+    out["chart_id"] = revision.chart_id
+    out["parent_id"] = revision.parent_id
+    out["cost_at_current_prices"] = None
+    if revision.cost_usd is None and revision.usage:
+        config = ModelConfig.objects.filter(user=user).first()
+        if config is not None:
+            out["cost_at_current_prices"] = estimate_cost(revision.usage, config)
+    return out
 
 
 @revisions_router.get("/{revision_id}", response=RevisionOut)
 def get_revision(request: HttpRequest, revision_id: int):
     """The poll target while a revision is pending or running (SPEC §4)."""
-    return get_object_or_404(ChartRevision, pk=revision_id, user=request.user)
+    revision = get_object_or_404(ChartRevision, pk=revision_id, user=request.user)
+    return revision_out(revision, request.user)

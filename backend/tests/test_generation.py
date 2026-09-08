@@ -103,6 +103,13 @@ def test_create_chart_makes_revision_1_and_worker_finishes_it(ready, stub):
     assert revision["usage"]["total_tokens"] == 19
     assert revision["usage"]["reasoning_tokens"] == 3
     assert revision["cost_usd"] is None  # no prices entered
+    assert revision["cost_at_current_prices"] is None
+
+    # Entering prices later gives old revisions an estimate at today's prices, unstored.
+    set_key(client, stub, "good-key", input_price_per_million=1.0, output_price_per_million=2.0)
+    revision = client.get(f"/api/revisions/{revision_id}").json()
+    assert revision["cost_usd"] is None
+    assert revision["cost_at_current_prices"] == pytest.approx(12 * 1e-6 + 7 * 2e-6)
     assert revision["duration_ms"] is not None and revision["duration_ms"] >= 0
 
     chart = client.get(f"/api/charts/{chart['id']}").json()

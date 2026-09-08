@@ -120,6 +120,7 @@ export const t = {
         tokensDetail: '{prompt} in, {completion} out{reasoning}',
         reasoning: ' (of which {n} reasoning)',
         cost: 'Estimated cost',
+        costAtCurrent: 'at current prices; this chart ran before prices were entered',
         costUnknown: 'enter prices under Settings',
         attempt: 'Attempt'
       },

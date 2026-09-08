@@ -46,7 +46,8 @@ class RevisionOut(Schema):
     prompt_version: str
     app_version: str
     usage: dict[str, Any] | None
-    cost_usd: float | None
+    cost_usd: float | None  # fixed at run time
+    cost_at_current_prices: float | None  # only when cost_usd is unknown; not stored
     started_at: datetime | None
     finished_at: datetime | None
     duration_ms: int | None
