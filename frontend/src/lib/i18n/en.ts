@@ -105,7 +105,26 @@ export const t = {
       waiting: 'Waiting for the model.',
       running: 'The model is writing the specification.',
       failed: 'Generation failed',
-      tabs: { chart: 'Chart', spec: 'Specification', request: 'Request and response' },
+      tabs: { chart: 'Chart', data: 'Data', spec: 'Specification', request: 'Request and response' },
+      revisions: 'Revisions',
+      current: 'current',
+      makeCurrent: 'Make this the current revision',
+      revise: {
+        title: 'Revise',
+        lead: 'Starts from revision {n}. Change the fields or the request and the model sees the previous specification too.',
+        prompt: 'What should change?',
+        submit: 'Create revision',
+        creating: 'Creating…'
+      },
+      export: {
+        title: 'Export',
+        png: 'PNG',
+        svg: 'SVG',
+        json: 'Spec JSON',
+        bundle: 'Reproducibility bundle',
+        bundleHint: 'One JSON file with the dataset profile, how it was read, and every revision with its request and response.'
+      },
+      dataRows: '{shown} of {total} rows',
       corrections: 'Corrections applied to the model\'s answer',
       adjustments: 'Parameters adjusted for this endpoint',
       record: {

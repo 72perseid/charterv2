@@ -260,7 +260,8 @@ export const charts = {
     request<ChartDetail>(`/charts/${id}`, { method: 'PATCH', body: fields }),
   remove: (id: number) => request<void>(`/charts/${id}`, { method: 'DELETE' }),
   revise: (id: number, fields: RevisionFields & { parent_id: number | null }) =>
-    request<Revision>(`/charts/${id}/revisions`, { method: 'POST', body: fields })
+    request<Revision>(`/charts/${id}/revisions`, { method: 'POST', body: fields }),
+  exportUrl: (id: number) => `/api/charts/${id}/export`
 };
 
 export const revisions = {

@@ -3,12 +3,13 @@ from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Count, Max, Prefetch
-from django.http import HttpRequest
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja import Router
 
 from accounts.models import ModelConfig
+from charts.export import build_bundle
 from charts.models import Chart, ChartRevision
 from charts.schemas import (
     ChartDetail,
@@ -134,6 +135,17 @@ def patch_chart(request: HttpRequest, chart_id: int, data: ChartPatch):
 def delete_chart(request: HttpRequest, chart_id: int):
     own_chart(request, chart_id).delete()
     return 204, None
+
+
+@router.get("/{chart_id}/export")
+def export_chart(request: HttpRequest, chart_id: int):
+    """Reproducibility bundle as a JSON download (SPEC §7)."""
+    chart = own_chart(request, chart_id)
+    response = JsonResponse(
+        build_bundle(chart), json_dumps_params={"ensure_ascii": False, "indent": 1}
+    )
+    response["Content-Disposition"] = f'attachment; filename="charter-chart-{chart.pk}.json"'
+    return response
 
 
 @router.post("/{chart_id}/revisions", response={201: RevisionOut, 400: Detail, 429: Detail})

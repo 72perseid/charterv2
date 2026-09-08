@@ -44,13 +44,17 @@ Each user stores an OpenAI-compatible base URL, a model name, and their own API 
 
 The worker builds a prompt from the template in `backend/prompts/` (versioned; `p2026-09-a` today), the dataset profile at the dataset's privacy level, the chosen fields, and the request. It asks for a JSON object, validates the answer against the vendored Vega-Lite v6 schema, replaces or drops encodings that name fields the dataset does not have, strips anything that would carry data, and refuses layered or concatenated specs. One retry with the validation error appended, then `failed` with the reason. Every revision keeps the exact messages sent, the parameters after any per-endpoint adjustments, the raw response, model, endpoint host, temperature, seed, prompt version, app version, token usage, and timings.
 
+## Reproducibility bundle
+
+Every chart page offers a bundle download: one JSON file (`charter-bundle/1`) with the chart, the dataset's profile and parse options, and every revision with its stored request, raw response, validated specification, corrections, model, endpoint host, temperature, seed, prompt version, app version, token usage, cost, and timings. Together with the original file it is enough to re-run or audit any revision.
+
 ## Files
 
 CSV, TSV, and xlsx up to 20 MB, 100 000 rows, 200 columns. Text files are decoded as UTF-8, then Windows-1254 (Turkish), then Latin-1. The delimiter is sniffed among `, ; tab |`; a semicolon implies a decimal comma, otherwise the decimal mark is detected. Dates are read day-first. Grouped numbers such as `1.250,50` are understood. For xlsx the first non-empty sheet is used and the header is the first row with at least half its cells filled; both can be overridden on the dataset page. Every choice is recorded with the dataset.
 
 ## Status
 
-Build step 4 of 6 (generation: prompt, validation, retry, provenance record, chart form, polling, rendering). See SPEC.md §12.
+Build step 5 of 6 (viewer: revision list and form, current revision, PNG/SVG/JSON export, reproducibility bundle). See SPEC.md §12.
 
 ## License
 

@@ -13,8 +13,12 @@ export const load: PageLoad = async ({ params, url }) => {
     chart.revisions.find((r) => r.id === wanted) ??
     chart.revisions.find((r) => r.id === chart.current_revision_id) ??
     chart.revisions[chart.revisions.length - 1];
-  const revision: Revision | null = summary ? await revisions.get(summary.id) : null;
+
+  const [revision, dataset] = await Promise.all([
+    summary ? revisions.get(summary.id) : Promise.resolve(null as Revision | null),
+    datasets.get(chart.dataset_id)
+  ]);
   const rows: Rows | null =
     revision?.status === 'done' ? await datasets.rows(chart.dataset_id, 100000) : null;
-  return { chart, revision, rows };
+  return { chart, revision, dataset, rows };
 };

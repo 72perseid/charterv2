@@ -290,3 +290,49 @@ def test_two_workers_never_claim_the_same_revision():
         t.join()
     assert len(claimed) == 6 and len(set(claimed)) == 6
     assert ChartRevision.objects.filter(attempts=1).count() == 6
+
+
+def test_export_bundle_holds_the_whole_record(ready, stub):
+    client, dataset_id = ready
+    set_key(client, stub, "good-key", input_price_per_million=1.0, output_price_per_million=2.0)
+    chart = create_chart(client, dataset_id).json()
+    process_one_revision()
+    first_id = chart["revisions"][0]["id"]
+    client.post(
+        f"/api/charts/{chart['id']}/revisions",
+        json.dumps(
+            {"parent_id": first_id, "x_field": "Alan", "y_field": "Sayı", "prompt": "çizgi"}
+        ),
+        content_type="application/json",
+    )
+    process_one_revision()
+
+    response = client.get(f"/api/charts/{chart['id']}/export")
+    assert response.status_code == 200
+    assert (
+        response["Content-Disposition"]
+        == f'attachment; filename="charter-chart-{chart["id"]}.json"'
+    )
+    bundle = json.loads(response.content)  # re-read exactly as a stranger would
+    assert bundle["format"] == "charter-bundle/1"
+    assert bundle["chart"]["title"] == "Alanlara göre"
+    assert bundle["dataset"]["parse_options"]["encoding"] == "cp1254"
+    assert {c["name"] for c in bundle["dataset"]["profile"]["columns"]} >= {"Alan", "Sayı"}
+    assert [r["revision_no"] for r in bundle["revisions"]] == [1, 2]
+    second = bundle["revisions"][1]
+    assert second["parent_id"] == first_id
+    assert second["spec"]["mark"] == "bar"
+    assert second["request"]["messages"][0]["role"] == "system"
+    assert "Previous specification" in second["request"]["messages"][1]["content"]
+    assert second["response_text"].startswith("{")
+    assert second["cost_usd"] == pytest.approx(12 * 1e-6 + 7 * 2e-6)
+    assert second["prompt_version"] == "p2026-09-a"
+
+    other = CsrfClient(enforce_csrf_checks=True)
+    other.get("/api/auth/csrf")
+    other.post(
+        "/api/auth/register",
+        {"email": "other@example.org", "password": "correct-horse-9"},
+        content_type="application/json",
+    )
+    assert other.get(f"/api/charts/{chart['id']}/export").status_code == 404
