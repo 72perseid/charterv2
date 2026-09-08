@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
 
   let { status }: { status: 'pending' | 'running' | 'done' | 'failed' } = $props();
 </script>

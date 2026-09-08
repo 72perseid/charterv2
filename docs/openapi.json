@@ -1,0 +1,2247 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "Chart-er API",
+  "version": "2",
+  "description": ""
+ },
+ "paths": {
+  "/api/auth/csrf": {
+   "get": {
+    "operationId": "accounts_api_csrf",
+    "summary": "Csrf",
+    "parameters": [],
+    "responses": {
+     "204": {
+      "description": "No Content"
+     }
+    },
+    "description": "Sets the csrftoken cookie. The frontend calls this once before any POST.",
+    "tags": [
+     "auth"
+    ]
+   }
+  },
+  "/api/auth/register": {
+   "post": {
+    "operationId": "accounts_api_register",
+    "summary": "Register",
+    "parameters": [],
+    "responses": {
+     "201": {
+      "description": "Created",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UserOut"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Bad Request",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "auth"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RegisterIn"
+       }
+      }
+     },
+     "required": true
+    }
+   }
+  },
+  "/api/auth/login": {
+   "post": {
+    "operationId": "accounts_api_login_view",
+    "summary": "Login View",
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UserOut"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Unauthorized",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "auth"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/LoginIn"
+       }
+      }
+     },
+     "required": true
+    }
+   }
+  },
+  "/api/auth/logout": {
+   "post": {
+    "operationId": "accounts_api_logout_view",
+    "summary": "Logout View",
+    "parameters": [],
+    "responses": {
+     "204": {
+      "description": "No Content"
+     }
+    },
+    "tags": [
+     "auth"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/auth/me": {
+   "get": {
+    "operationId": "accounts_api_me",
+    "summary": "Me",
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UserOut"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Unauthorized",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "auth"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/me/model-config": {
+   "get": {
+    "operationId": "accounts_api_get_model_config",
+    "summary": "Get Model Config",
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelConfigOut"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "me"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   },
+   "put": {
+    "operationId": "accounts_api_put_model_config",
+    "summary": "Put Model Config",
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelConfigOut"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Bad Request",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "me"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ModelConfigIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/me/model-config/test": {
+   "post": {
+    "operationId": "accounts_api_test_model_config",
+    "summary": "Test Model Config",
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelTestOut"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Bad Request",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "description": "One tiny call with the stored settings. Reports what happened (SPEC §7).",
+    "tags": [
+     "me"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/me/model-config/models": {
+   "post": {
+    "operationId": "accounts_api_list_provider_models",
+    "summary": "List Provider Models",
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelListOut"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Bad Request",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "description": "Ask the provider at base_url for its model list, so the user picks a\nreal name instead of guessing one. Uses the pasted key, or the stored one.",
+    "tags": [
+     "me"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ModelListIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/datasets": {
+   "get": {
+    "operationId": "datasets_api_list_datasets",
+    "summary": "List Datasets",
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/DatasetOut"
+         },
+         "title": "Response",
+         "type": "array"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "datasets"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   },
+   "post": {
+    "operationId": "datasets_api_upload_dataset",
+    "summary": "Upload Dataset",
+    "parameters": [],
+    "responses": {
+     "201": {
+      "description": "Created",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DatasetDetail"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Bad Request",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "Request Entity Too Large",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too Many Requests",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "datasets"
+    ],
+    "requestBody": {
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "properties": {
+         "file": {
+          "format": "binary",
+          "title": "File",
+          "type": "string"
+         },
+         "name": {
+          "default": "",
+          "title": "Name",
+          "type": "string"
+         }
+        },
+        "required": [
+         "file"
+        ],
+        "title": "MultiPartBodyParams",
+        "type": "object"
+       }
+      }
+     },
+     "required": true
+    },
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/datasets/{dataset_id}": {
+   "get": {
+    "operationId": "datasets_api_get_dataset",
+    "summary": "Get Dataset",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "dataset_id",
+      "schema": {
+       "title": "Dataset Id",
+       "type": "integer"
+      },
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DatasetDetail"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "datasets"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   },
+   "patch": {
+    "operationId": "datasets_api_patch_dataset",
+    "summary": "Patch Dataset",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "dataset_id",
+      "schema": {
+       "title": "Dataset Id",
+       "type": "integer"
+      },
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DatasetDetail"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Bad Request",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "datasets"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DatasetPatch"
+       }
+      }
+     },
+     "required": true
+    },
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   },
+   "delete": {
+    "operationId": "datasets_api_delete_dataset",
+    "summary": "Delete Dataset",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "dataset_id",
+      "schema": {
+       "title": "Dataset Id",
+       "type": "integer"
+      },
+      "required": true
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "No Content"
+     }
+    },
+    "tags": [
+     "datasets"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/datasets/{dataset_id}/rows": {
+   "get": {
+    "operationId": "datasets_api_dataset_rows",
+    "summary": "Dataset Rows",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "dataset_id",
+      "schema": {
+       "title": "Dataset Id",
+       "type": "integer"
+      },
+      "required": true
+     },
+     {
+      "in": "query",
+      "name": "limit",
+      "schema": {
+       "default": 100,
+       "title": "Limit",
+       "type": "integer"
+      },
+      "required": false
+     },
+     {
+      "in": "query",
+      "name": "offset",
+      "schema": {
+       "default": 0,
+       "title": "Offset",
+       "type": "integer"
+      },
+      "required": false
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RowsOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "datasets"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/datasets/{dataset_id}/download": {
+   "get": {
+    "operationId": "datasets_api_download_dataset",
+    "summary": "Download Dataset",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "dataset_id",
+      "schema": {
+       "title": "Dataset Id",
+       "type": "integer"
+      },
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     }
+    },
+    "tags": [
+     "datasets"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/charts": {
+   "get": {
+    "operationId": "charts_api_list_charts",
+    "summary": "List Charts",
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ChartOut"
+         },
+         "title": "Response",
+         "type": "array"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "charts"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   },
+   "post": {
+    "operationId": "charts_api_create_chart",
+    "summary": "Create Chart",
+    "parameters": [],
+    "responses": {
+     "201": {
+      "description": "Created",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ChartDetail"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Bad Request",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too Many Requests",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "description": "Creates the chart and its revision 1 in one request (SPEC §7).",
+    "tags": [
+     "charts"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ChartIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/charts/{chart_id}": {
+   "get": {
+    "operationId": "charts_api_get_chart",
+    "summary": "Get Chart",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "chart_id",
+      "schema": {
+       "title": "Chart Id",
+       "type": "integer"
+      },
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ChartDetail"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "charts"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   },
+   "patch": {
+    "operationId": "charts_api_patch_chart",
+    "summary": "Patch Chart",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "chart_id",
+      "schema": {
+       "title": "Chart Id",
+       "type": "integer"
+      },
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ChartDetail"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Bad Request",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "charts"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ChartPatch"
+       }
+      }
+     },
+     "required": true
+    },
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   },
+   "delete": {
+    "operationId": "charts_api_delete_chart",
+    "summary": "Delete Chart",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "chart_id",
+      "schema": {
+       "title": "Chart Id",
+       "type": "integer"
+      },
+      "required": true
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "No Content"
+     }
+    },
+    "tags": [
+     "charts"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/charts/{chart_id}/export": {
+   "get": {
+    "operationId": "charts_api_export_chart",
+    "summary": "Export Chart",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "chart_id",
+      "schema": {
+       "title": "Chart Id",
+       "type": "integer"
+      },
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     }
+    },
+    "description": "Reproducibility bundle as a JSON download (SPEC §7).",
+    "tags": [
+     "charts"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/charts/{chart_id}/revisions": {
+   "post": {
+    "operationId": "charts_api_create_revision",
+    "summary": "Create Revision",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "chart_id",
+      "schema": {
+       "title": "Chart Id",
+       "type": "integer"
+      },
+      "required": true
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "Created",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RevisionOut"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Bad Request",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too Many Requests",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "charts"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RevisionIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/revisions/{revision_id}": {
+   "get": {
+    "operationId": "charts_api_get_revision",
+    "summary": "Get Revision",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "revision_id",
+      "schema": {
+       "title": "Revision Id",
+       "type": "integer"
+      },
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RevisionOut"
+        }
+       }
+      }
+     }
+    },
+    "description": "The poll target while a revision is pending or running (SPEC §4).",
+    "tags": [
+     "revisions"
+    ],
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "UserOut": {
+    "properties": {
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     },
+     "email": {
+      "title": "Email",
+      "type": "string"
+     },
+     "display_name": {
+      "title": "Display Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "email",
+     "display_name"
+    ],
+    "title": "UserOut",
+    "type": "object"
+   },
+   "Detail": {
+    "properties": {
+     "detail": {
+      "title": "Detail",
+      "type": "string"
+     }
+    },
+    "required": [
+     "detail"
+    ],
+    "title": "Detail",
+    "type": "object"
+   },
+   "RegisterIn": {
+    "properties": {
+     "email": {
+      "title": "Email",
+      "type": "string"
+     },
+     "password": {
+      "maxLength": 128,
+      "minLength": 8,
+      "title": "Password",
+      "type": "string"
+     },
+     "display_name": {
+      "default": "",
+      "maxLength": 120,
+      "title": "Display Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "email",
+     "password"
+    ],
+    "title": "RegisterIn",
+    "type": "object"
+   },
+   "LoginIn": {
+    "properties": {
+     "email": {
+      "title": "Email",
+      "type": "string"
+     },
+     "password": {
+      "title": "Password",
+      "type": "string"
+     }
+    },
+    "required": [
+     "email",
+     "password"
+    ],
+    "title": "LoginIn",
+    "type": "object"
+   },
+   "ModelConfigOut": {
+    "properties": {
+     "base_url": {
+      "title": "Base Url",
+      "type": "string"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     },
+     "temperature": {
+      "title": "Temperature",
+      "type": "number"
+     },
+     "has_key": {
+      "title": "Has Key",
+      "type": "boolean"
+     },
+     "key_hint": {
+      "title": "Key Hint",
+      "type": "string"
+     },
+     "input_price_per_million": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Input Price Per Million"
+     },
+     "output_price_per_million": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Output Price Per Million"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "format": "date-time",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     }
+    },
+    "required": [
+     "base_url",
+     "model",
+     "temperature",
+     "has_key",
+     "key_hint",
+     "input_price_per_million",
+     "output_price_per_million",
+     "updated_at"
+    ],
+    "title": "ModelConfigOut",
+    "type": "object"
+   },
+   "ModelConfigIn": {
+    "properties": {
+     "base_url": {
+      "maxLength": 500,
+      "minLength": 8,
+      "title": "Base Url",
+      "type": "string"
+     },
+     "model": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+     },
+     "api_key": {
+      "default": "",
+      "maxLength": 1000,
+      "title": "Api Key",
+      "type": "string"
+     },
+     "temperature": {
+      "default": 0.0,
+      "maximum": 2.0,
+      "minimum": 0.0,
+      "title": "Temperature",
+      "type": "number"
+     },
+     "input_price_per_million": {
+      "anyOf": [
+       {
+        "minimum": 0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Input Price Per Million"
+     },
+     "output_price_per_million": {
+      "anyOf": [
+       {
+        "minimum": 0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Output Price Per Million"
+     }
+    },
+    "required": [
+     "base_url",
+     "model"
+    ],
+    "title": "ModelConfigIn",
+    "type": "object"
+   },
+   "ModelTestOut": {
+    "properties": {
+     "ok": {
+      "title": "Ok",
+      "type": "boolean"
+     },
+     "message": {
+      "title": "Message",
+      "type": "string"
+     },
+     "model": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Model"
+     },
+     "duration_ms": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Duration Ms"
+     }
+    },
+    "required": [
+     "ok",
+     "message"
+    ],
+    "title": "ModelTestOut",
+    "type": "object"
+   },
+   "ModelListOut": {
+    "properties": {
+     "models": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Models",
+      "type": "array"
+     },
+     "pricing": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/ModelPrice"
+      },
+      "title": "Pricing",
+      "type": "object"
+     }
+    },
+    "required": [
+     "models",
+     "pricing"
+    ],
+    "title": "ModelListOut",
+    "type": "object"
+   },
+   "ModelPrice": {
+    "properties": {
+     "input_per_million": {
+      "title": "Input Per Million",
+      "type": "number"
+     },
+     "output_per_million": {
+      "title": "Output Per Million",
+      "type": "number"
+     }
+    },
+    "required": [
+     "input_per_million",
+     "output_per_million"
+    ],
+    "title": "ModelPrice",
+    "type": "object"
+   },
+   "ModelListIn": {
+    "properties": {
+     "base_url": {
+      "maxLength": 500,
+      "minLength": 8,
+      "title": "Base Url",
+      "type": "string"
+     },
+     "api_key": {
+      "default": "",
+      "maxLength": 1000,
+      "title": "Api Key",
+      "type": "string"
+     }
+    },
+    "required": [
+     "base_url"
+    ],
+    "title": "ModelListIn",
+    "type": "object"
+   },
+   "DatasetOut": {
+    "properties": {
+     "id": {
+      "title": "Id",
+      "type": "integer"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "original_filename": {
+      "title": "Original Filename",
+      "type": "string"
+     },
+     "row_count": {
+      "title": "Row Count",
+      "type": "integer"
+     },
+     "column_count": {
+      "title": "Column Count",
+      "type": "integer"
+     },
+     "size_bytes": {
+      "title": "Size Bytes",
+      "type": "integer"
+     },
+     "privacy_level": {
+      "title": "Privacy Level",
+      "type": "string"
+     },
+     "status": {
+      "title": "Status",
+      "type": "string"
+     },
+     "error_message": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error Message"
+     },
+     "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "original_filename",
+     "row_count",
+     "column_count",
+     "size_bytes",
+     "privacy_level",
+     "status",
+     "error_message",
+     "created_at"
+    ],
+    "title": "DatasetOut",
+    "type": "object"
+   },
+   "DatasetDetail": {
+    "properties": {
+     "id": {
+      "title": "Id",
+      "type": "integer"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "original_filename": {
+      "title": "Original Filename",
+      "type": "string"
+     },
+     "row_count": {
+      "title": "Row Count",
+      "type": "integer"
+     },
+     "column_count": {
+      "title": "Column Count",
+      "type": "integer"
+     },
+     "size_bytes": {
+      "title": "Size Bytes",
+      "type": "integer"
+     },
+     "privacy_level": {
+      "title": "Privacy Level",
+      "type": "string"
+     },
+     "status": {
+      "title": "Status",
+      "type": "string"
+     },
+     "error_message": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error Message"
+     },
+     "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+     },
+     "sheet_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sheet Name"
+     },
+     "parse_options": {
+      "additionalProperties": true,
+      "title": "Parse Options",
+      "type": "object"
+     },
+     "profile": {
+      "additionalProperties": true,
+      "title": "Profile",
+      "type": "object"
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "original_filename",
+     "row_count",
+     "column_count",
+     "size_bytes",
+     "privacy_level",
+     "status",
+     "error_message",
+     "created_at",
+     "sheet_name",
+     "parse_options",
+     "profile"
+    ],
+    "title": "DatasetDetail",
+    "type": "object"
+   },
+   "DatasetPatch": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "privacy_level": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Privacy Level"
+     },
+     "sheet": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sheet"
+     },
+     "header_row": {
+      "anyOf": [
+       {
+        "maximum": 1000,
+        "minimum": 0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Header Row"
+     }
+    },
+    "title": "DatasetPatch",
+    "type": "object"
+   },
+   "RowsOut": {
+    "properties": {
+     "total": {
+      "title": "Total",
+      "type": "integer"
+     },
+     "offset": {
+      "title": "Offset",
+      "type": "integer"
+     },
+     "limit": {
+      "title": "Limit",
+      "type": "integer"
+     },
+     "columns": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Columns",
+      "type": "array"
+     },
+     "rows": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "title": "Rows",
+      "type": "array"
+     }
+    },
+    "required": [
+     "total",
+     "offset",
+     "limit",
+     "columns",
+     "rows"
+    ],
+    "title": "RowsOut",
+    "type": "object"
+   },
+   "ChartOut": {
+    "properties": {
+     "id": {
+      "title": "Id",
+      "type": "integer"
+     },
+     "dataset_id": {
+      "title": "Dataset Id",
+      "type": "integer"
+     },
+     "dataset_name": {
+      "title": "Dataset Name",
+      "type": "string"
+     },
+     "title": {
+      "title": "Title",
+      "type": "string"
+     },
+     "current_revision_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Current Revision Id"
+     },
+     "current_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Current Status"
+     },
+     "revision_count": {
+      "title": "Revision Count",
+      "type": "integer"
+     },
+     "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+     },
+     "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "dataset_id",
+     "dataset_name",
+     "title",
+     "current_revision_id",
+     "current_status",
+     "revision_count",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "ChartOut",
+    "type": "object"
+   },
+   "ChartDetail": {
+    "properties": {
+     "id": {
+      "title": "Id",
+      "type": "integer"
+     },
+     "dataset_id": {
+      "title": "Dataset Id",
+      "type": "integer"
+     },
+     "dataset_name": {
+      "title": "Dataset Name",
+      "type": "string"
+     },
+     "title": {
+      "title": "Title",
+      "type": "string"
+     },
+     "current_revision_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Current Revision Id"
+     },
+     "current_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Current Status"
+     },
+     "revision_count": {
+      "title": "Revision Count",
+      "type": "integer"
+     },
+     "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+     },
+     "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+     },
+     "revisions": {
+      "items": {
+       "$ref": "#/components/schemas/RevisionSummary"
+      },
+      "title": "Revisions",
+      "type": "array"
+     }
+    },
+    "required": [
+     "id",
+     "dataset_id",
+     "dataset_name",
+     "title",
+     "current_revision_id",
+     "current_status",
+     "revision_count",
+     "created_at",
+     "updated_at",
+     "revisions"
+    ],
+    "title": "ChartDetail",
+    "type": "object"
+   },
+   "RevisionSummary": {
+    "properties": {
+     "id": {
+      "title": "Id",
+      "type": "integer"
+     },
+     "revision_no": {
+      "title": "Revision No",
+      "type": "integer"
+     },
+     "parent_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent Id"
+     },
+     "x_field": {
+      "title": "X Field",
+      "type": "string"
+     },
+     "y_field": {
+      "title": "Y Field",
+      "type": "string"
+     },
+     "color_field": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Color Field"
+     },
+     "prompt": {
+      "title": "Prompt",
+      "type": "string"
+     },
+     "status": {
+      "title": "Status",
+      "type": "string"
+     },
+     "error_message": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error Message"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     },
+     "duration_ms": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Duration Ms"
+     },
+     "cost_usd": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cost Usd"
+     },
+     "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "revision_no",
+     "parent_id",
+     "x_field",
+     "y_field",
+     "color_field",
+     "prompt",
+     "status",
+     "error_message",
+     "model",
+     "duration_ms",
+     "cost_usd",
+     "created_at"
+    ],
+    "title": "RevisionSummary",
+    "type": "object"
+   },
+   "ChartIn": {
+    "properties": {
+     "parent_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent Id"
+     },
+     "x_field": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "X Field",
+      "type": "string"
+     },
+     "y_field": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Y Field",
+      "type": "string"
+     },
+     "color_field": {
+      "anyOf": [
+       {
+        "maxLength": 200,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Color Field"
+     },
+     "prompt": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Prompt",
+      "type": "string"
+     },
+     "dataset_id": {
+      "title": "Dataset Id",
+      "type": "integer"
+     },
+     "title": {
+      "default": "",
+      "maxLength": 200,
+      "title": "Title",
+      "type": "string"
+     }
+    },
+    "required": [
+     "x_field",
+     "y_field",
+     "prompt",
+     "dataset_id"
+    ],
+    "title": "ChartIn",
+    "type": "object"
+   },
+   "ChartPatch": {
+    "properties": {
+     "title": {
+      "anyOf": [
+       {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Title"
+     },
+     "current_revision_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Current Revision Id"
+     }
+    },
+    "title": "ChartPatch",
+    "type": "object"
+   },
+   "RevisionOut": {
+    "properties": {
+     "id": {
+      "title": "Id",
+      "type": "integer"
+     },
+     "chart_id": {
+      "title": "Chart Id",
+      "type": "integer"
+     },
+     "revision_no": {
+      "title": "Revision No",
+      "type": "integer"
+     },
+     "parent_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent Id"
+     },
+     "x_field": {
+      "title": "X Field",
+      "type": "string"
+     },
+     "y_field": {
+      "title": "Y Field",
+      "type": "string"
+     },
+     "color_field": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Color Field"
+     },
+     "prompt": {
+      "title": "Prompt",
+      "type": "string"
+     },
+     "status": {
+      "title": "Status",
+      "type": "string"
+     },
+     "attempts": {
+      "title": "Attempts",
+      "type": "integer"
+     },
+     "error_message": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error Message"
+     },
+     "spec": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Spec"
+     },
+     "corrections": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Corrections",
+      "type": "array"
+     },
+     "request": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Request"
+     },
+     "response_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Response Text"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     },
+     "endpoint_host": {
+      "title": "Endpoint Host",
+      "type": "string"
+     },
+     "temperature": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Temperature"
+     },
+     "seed": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Seed"
+     },
+     "prompt_version": {
+      "title": "Prompt Version",
+      "type": "string"
+     },
+     "app_version": {
+      "title": "App Version",
+      "type": "string"
+     },
+     "usage": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Usage"
+     },
+     "cost_usd": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cost Usd"
+     },
+     "cost_at_current_prices": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cost At Current Prices"
+     },
+     "started_at": {
+      "anyOf": [
+       {
+        "format": "date-time",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Started At"
+     },
+     "finished_at": {
+      "anyOf": [
+       {
+        "format": "date-time",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finished At"
+     },
+     "duration_ms": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Duration Ms"
+     },
+     "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "chart_id",
+     "revision_no",
+     "parent_id",
+     "x_field",
+     "y_field",
+     "color_field",
+     "prompt",
+     "status",
+     "attempts",
+     "error_message",
+     "spec",
+     "corrections",
+     "request",
+     "response_text",
+     "model",
+     "endpoint_host",
+     "temperature",
+     "seed",
+     "prompt_version",
+     "app_version",
+     "usage",
+     "cost_usd",
+     "cost_at_current_prices",
+     "started_at",
+     "finished_at",
+     "duration_ms",
+     "created_at"
+    ],
+    "title": "RevisionOut",
+    "type": "object"
+   },
+   "RevisionIn": {
+    "properties": {
+     "parent_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent Id"
+     },
+     "x_field": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "X Field",
+      "type": "string"
+     },
+     "y_field": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Y Field",
+      "type": "string"
+     },
+     "color_field": {
+      "anyOf": [
+       {
+        "maxLength": 200,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Color Field"
+     },
+     "prompt": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Prompt",
+      "type": "string"
+     }
+    },
+    "required": [
+     "x_field",
+     "y_field",
+     "prompt"
+    ],
+    "title": "RevisionIn",
+    "type": "object"
+   }
+  },
+  "securitySchemes": {
+   "SessionAuth": {
+    "type": "apiKey",
+    "in": "cookie",
+    "name": "sessionid"
+   }
+  }
+ },
+ "servers": []
+}

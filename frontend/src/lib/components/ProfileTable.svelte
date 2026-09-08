@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ColumnProfile } from '$lib/api';
   import { formatInt } from '$lib/format';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
 
   let { columns }: { columns: ColumnProfile[] } = $props();
   const h = t.datasets.detail.profileColumns;

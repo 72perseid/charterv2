@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ApiError, datasets, type DatasetDetail } from '$lib/api';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
 
   let {
     onuploaded,

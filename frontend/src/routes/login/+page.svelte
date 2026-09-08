@@ -3,7 +3,7 @@
   import { page } from '$app/state';
   import { auth } from '$lib/api';
   import AuthForm from '$lib/components/AuthForm.svelte';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
   import { session } from '$lib/session.svelte';
 
   async function submit({ email, password }: { email: string; password: string }) {

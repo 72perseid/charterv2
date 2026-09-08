@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PrivacyLevel } from '$lib/api';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
 
   let {
     value,

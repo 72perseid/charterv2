@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto, invalidateAll } from '$app/navigation';
   import { ApiError, auth, modelConfig, type ModelPrice, type ModelTest } from '$lib/api';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
   import { session } from '$lib/session.svelte';
 
   let { data } = $props();

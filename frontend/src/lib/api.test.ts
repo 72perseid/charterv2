@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { detailOf } from './api';
-import { t } from './i18n/en';
+import { t } from './i18n';
 
 describe('detailOf', () => {
   it('returns a plain detail string', () => {

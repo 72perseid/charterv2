@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
   import { session } from '$lib/session.svelte';
+  import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
 </script>
 
 <svelte:head><title>{t.appName}</title></svelte:head>
 
 <main class="landing">
+  <div class="top"><LanguageSwitch /></div>
   <h1>{t.landing.title}</h1>
   <p class="lead">{t.landing.lead}</p>
   <ol>
@@ -27,7 +29,12 @@
 <style>
   .landing {
     max-width: 40rem;
-    padding-top: 4rem;
+    padding-top: 2rem;
+  }
+  .top {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 2rem;
   }
   .lead {
     font-size: 1.15rem;

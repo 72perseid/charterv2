@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ApiError } from '$lib/api';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
+  import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
 
   let {
     mode,
@@ -31,6 +32,7 @@
 </script>
 
 <form class="narrow" onsubmit={submit} novalidate>
+  <div class="top"><LanguageSwitch /></div>
   <h1>{mode === 'login' ? t.auth.signIn : t.auth.register}</h1>
   <div class="field">
     <label for="email">{t.auth.email}</label>
@@ -67,6 +69,11 @@
 </form>
 
 <style>
+  .top {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.5rem;
+  }
   .switch {
     margin: 1rem 0 0;
     font-size: 0.9rem;

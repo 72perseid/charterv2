@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { RevisionSummary } from '$lib/api';
   import StatusChip from '$lib/components/StatusChip.svelte';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
 
   let {
     chartId,

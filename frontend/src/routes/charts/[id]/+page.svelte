@@ -8,7 +8,7 @@
   import StatusChip from '$lib/components/StatusChip.svelte';
   import { saveBlob, saveText, slug } from '$lib/download';
   import { formatInt } from '$lib/format';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
   import { onDestroy } from 'svelte';
   import type { Result } from 'vega-embed';
 

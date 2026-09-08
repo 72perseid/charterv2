@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { ApiError, charts, type ColumnProfile, type RevisionSummary } from '$lib/api';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
 
   let {
     chartId,

@@ -1,7 +1,8 @@
-// Every user-visible string lives here (SPEC §8). tr.ts is added in build step 6.
-export const t = {
+// Every user-visible string lives here (SPEC §8); tr.ts mirrors it. No i18n library.
+export const en = {
   appName: 'Chart-er',
   nav: { datasets: 'Datasets', charts: 'Charts', settings: 'Settings', signOut: 'Sign out' },
+  language: { label: 'Language', en: 'English', tr: 'Türkçe' },
   landing: {
     title: 'Chart-er',
     lead: 'A table and a sentence in. A Vega-Lite chart, and the full record of how it was made, out.',
@@ -193,4 +194,6 @@ export const t = {
     network: 'Could not reach the server.',
     unknown: 'Something went wrong.'
   }
-} as const;
+};
+
+export type Strings = typeof en;

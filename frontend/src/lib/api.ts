@@ -1,6 +1,6 @@
 // The only place the browser talks to the server. Plain fetch, same-origin,
 // session cookie plus CSRF header. No client cache library (SPEC §8).
-import { t } from '$lib/i18n/en';
+import { t } from '$lib/i18n';
 
 export class ApiError extends Error {
   status: number;

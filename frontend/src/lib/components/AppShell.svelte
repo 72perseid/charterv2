@@ -3,7 +3,8 @@
   import { page } from '$app/state';
   import { auth, type User } from '$lib/api';
   import { session } from '$lib/session.svelte';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
+  import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
   import type { Snippet } from 'svelte';
 
   let { user, children }: { user: User; children: Snippet } = $props();
@@ -35,6 +36,7 @@
       {/each}
     </nav>
     <span class="spacer"></span>
+    <LanguageSwitch />
     <span class="who">{user.display_name || user.email}</span>
     <button class="quiet" type="button" onclick={signOut}>{t.nav.signOut}</button>
   </div>

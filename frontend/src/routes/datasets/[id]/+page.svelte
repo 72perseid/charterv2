@@ -7,7 +7,7 @@
   import ProfileTable from '$lib/components/ProfileTable.svelte';
   import StatusChip from '$lib/components/StatusChip.svelte';
   import { formatInt } from '$lib/format';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
   import { onDestroy } from 'svelte';
 
   let { data } = $props();

@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { auth } from '$lib/api';
   import AuthForm from '$lib/components/AuthForm.svelte';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
   import { session } from '$lib/session.svelte';
 
   async function submit(fields: { email: string; password: string; display_name: string }) {

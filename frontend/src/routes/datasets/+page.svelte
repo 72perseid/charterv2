@@ -4,7 +4,7 @@
   import StatusChip from '$lib/components/StatusChip.svelte';
   import UploadForm from '$lib/components/UploadForm.svelte';
   import { formatDate, formatInt } from '$lib/format';
-  import { t } from '$lib/i18n/en';
+  import { t } from '$lib/i18n';
   import { onDestroy } from 'svelte';
 
   let { data } = $props();
