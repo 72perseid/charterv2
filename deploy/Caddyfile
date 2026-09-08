@@ -1,0 +1,24 @@
+# Inside the compose network. TLS, if any, is terminated by whatever sits in front
+# (the host Caddy on the VPS, see SPEC §9). Plain HTTP on port 80 here.
+:80 {
+	encode gzip
+
+	# Django: API, admin, and authenticated file downloads.
+	@django path /api/* /admin/* /files/*
+	handle @django {
+		reverse_proxy api:8000
+	}
+
+	# Django admin's static files, collected at image build time into a shared volume.
+	handle_path /static/* {
+		root * /srv-static
+		file_server
+	}
+
+	# Everything else is the SvelteKit single-page build.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -1,0 +1,53 @@
+# Chart-er. One file, one .env, four processes (SPEC §9).
+# The only published port is Caddy's, bound to CADDY_BIND (default 127.0.0.1:8080).
+# On the project VPS a host Caddy proxies the public hostname to that port.
+
+name: charter
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: charter
+      POSTGRES_USER: charter
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U charter -d charter"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: ../backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://charter:${POSTGRES_PASSWORD}@postgres:5432/charter
+      DATA_DIR: /data
+    volumes:
+      - data:/data
+      - static:/app/static:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # worker (manage.py runworker) is added in build step 2 when the command exists.
+
+  caddy:
+    build: ../frontend
+    ports:
+      - "${CADDY_BIND:-127.0.0.1:8080}:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - static:/srv-static:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  data:
+  static:

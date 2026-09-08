@@ -1,0 +1,228 @@
+/* Design tokens carried over from v1 (SPEC §8). Visual direction is decided later;
+   these are the minimum for a legible, honest interface. */
+:root {
+  --primary: hsl(174 72% 45%);
+  --primary-ink: hsl(174 80% 20%);
+  --accent: hsl(174 60% 92%);
+  --success: hsl(142 71% 45%);
+  --warning: hsl(38 92% 50%);
+  --destructive: hsl(0 84% 60%);
+  --ground: hsl(0 0% 98%);
+  --surface: hsl(0 0% 100%);
+  --ink: hsl(210 10% 15%);
+  --ink-muted: hsl(210 8% 45%);
+  --line: hsl(210 12% 88%);
+  --radius: 0.5rem;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--ground);
+}
+
+body {
+  margin: 0;
+}
+
+a {
+  color: var(--primary-ink);
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  margin: 0 0 0.5rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+/* Forms */
+label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.25rem;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+button,
+.button {
+  font: inherit;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--primary-ink);
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+button.quiet,
+.button.quiet {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.error {
+  color: var(--destructive);
+  margin: 0.5rem 0 1rem;
+}
+
+/* Data tables: tabular numerals are a spec requirement. */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+tr:last-child td {
+  border-bottom: 0;
+}
+
+td.num,
+th.num {
+  text-align: right;
+}
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--ink-muted);
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+}
+
+/* Layout */
+.shell-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.shell-header .inner {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.shell-header .brand {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.shell-header nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.shell-header nav a {
+  text-decoration: none;
+  color: var(--ink-muted);
+}
+
+.shell-header nav a[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.shell-header .spacer {
+  flex: 1;
+}
+
+.shell-header .who {
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+}
+
+main {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.narrow {
+  max-width: 24rem;
+  margin: 3rem auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}

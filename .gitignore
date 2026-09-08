@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+build/
+*.egg-info/
+backend/static/
+backend/data/
+
+# Node
+node_modules/
+frontend/build/
+frontend/.svelte-kit/
+
+# Secrets and local state
+deploy/.env
+.env
+.DS_Store
+
