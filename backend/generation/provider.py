@@ -135,3 +135,34 @@ def _error_detail(response: httpx.Response) -> str:
         return str(error)[:200]
     except ValueError:
         return response.text[:200] or "no details"
+
+
+def list_models(*, base_url: str, api_key: str, timeout: float | None = None) -> list[str]:
+    """GET {base_url}/models: the provider's own list of model ids, sorted."""
+    base_url = normalise_base_url(base_url)
+    check_endpoint_allowed(base_url)
+    try:
+        response = httpx.get(
+            f"{base_url}/models",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=timeout or 30,
+        )
+    except httpx.TimeoutException as exc:
+        raise ProviderError("The endpoint did not answer in time.") from exc
+    except httpx.HTTPError as exc:
+        raise ProviderError(
+            f"Could not connect to the endpoint: {exc.__class__.__name__}."
+        ) from exc
+    if response.status_code in (401, 403):
+        raise ProviderError(f"Endpoint returned {response.status_code}: check your API key.")
+    if response.status_code == 404:
+        raise ProviderError("This endpoint does not list its models. Type the model name.")
+    if response.status_code >= 400:
+        raise ProviderError(f"Endpoint returned {response.status_code}: {_error_detail(response)}")
+    try:
+        data = response.json()
+        items = data["data"] if isinstance(data, dict) else data
+        ids = [str(item["id"]) for item in items if isinstance(item, dict) and item.get("id")]
+    except (ValueError, KeyError, TypeError) as exc:
+        raise ProviderError("Endpoint answered, but not with a model list.") from exc
+    return sorted(set(ids), key=str.lower)

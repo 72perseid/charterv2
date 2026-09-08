@@ -20,6 +20,34 @@
   let busy = $state(false);
   let testing = $state(false);
   let result: ModelTest | null = $state(null);
+  let models: string[] = $state([]);
+  let loadingModels = $state(false);
+  let modelsFor = $state(''); // base URL the current list belongs to
+
+  const canLoad = $derived(base_url.trim().length > 8 && (api_key !== '' || data.config.has_key));
+  const listed = $derived(models.length > 0 && modelsFor === base_url.trim());
+  const modelInList = $derived(listed && models.includes(model));
+
+  async function loadModels() {
+    if (!canLoad) return;
+    error = '';
+    loadingModels = true;
+    try {
+      models = (await modelConfig.models(base_url.trim(), api_key)).models;
+      modelsFor = base_url.trim();
+      if (models.length && (model === '' || !models.includes(model))) model = models[0];
+    } catch (e) {
+      models = [];
+      error = e instanceof ApiError ? e.message : t.errors.unknown;
+    } finally {
+      loadingModels = false;
+    }
+  }
+
+  // Load once the URL and key are both in place, and again if the URL changes.
+  function maybeLoad() {
+    if (canLoad && modelsFor !== base_url.trim() && !loadingModels) loadModels();
+  }
 
   const dirty = $derived(
     base_url !== data.config.base_url ||
@@ -75,21 +103,53 @@
   <form onsubmit={save}>
     <div class="field">
       <label for="base_url">{s.model.baseUrl}</label>
-      <input id="base_url" type="url" required bind:value={base_url} placeholder="https://…/v1" />
+      <input id="base_url" type="url" required bind:value={base_url} placeholder="https://…/v1" onblur={maybeLoad} />
       <small>{s.model.baseUrlHint}</small>
     </div>
     <div class="field">
-      <label for="model">{s.model.model}</label>
-      <input id="model" type="text" required bind:value={model} />
-      <small>{s.model.modelHint}</small>
-    </div>
-    <div class="field">
       <label for="api_key">{s.model.apiKey}</label>
-      <input id="api_key" type="password" autocomplete="off" bind:value={api_key} required={!data.config.has_key} />
+      <input
+        id="api_key"
+        type="password"
+        autocomplete="off"
+        bind:value={api_key}
+        required={!data.config.has_key}
+        onblur={maybeLoad}
+      />
       <small>
         {data.config.has_key
           ? s.model.apiKeyKeep.replace('{hint}', data.config.key_hint)
           : s.model.apiKeyNew}
+      </small>
+    </div>
+    <div class="field">
+      <label for="model">{s.model.model}</label>
+      <div class="model-row">
+        {#if listed}
+          <select id="model" value={modelInList ? model : '__other__'} onchange={(e) => { const v = e.currentTarget.value; model = v === '__other__' ? '' : v; }}>
+            {#each models as m (m)}
+              <option value={m}>{m}</option>
+            {/each}
+            <option value="__other__">{s.model.otherModel}</option>
+          </select>
+          {#if !modelInList}
+            <input type="text" required bind:value={model} aria-label={s.model.model} />
+          {/if}
+        {:else}
+          <input id="model" type="text" required bind:value={model} />
+        {/if}
+        <button type="button" class="quiet" onclick={loadModels} disabled={!canLoad || loadingModels}>
+          {loadingModels ? s.model.loadingModels : s.model.loadModels}
+        </button>
+      </div>
+      <small>
+        {#if listed}
+          {s.model.modelsLoaded.replace('{n}', String(models.length))}
+        {:else if canLoad}
+          {s.model.modelHint}
+        {:else}
+          {s.model.modelsNeedKey}
+        {/if}
       </small>
     </div>
     <div class="field narrow-field">
@@ -158,6 +218,19 @@
   }
   .narrow-field input {
     max-width: 8rem;
+  }
+  .model-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  .model-row select,
+  .model-row input {
+    flex: 1;
+    min-width: 0;
+  }
+  .model-row button {
+    white-space: nowrap;
   }
   .notice {
     color: var(--success);

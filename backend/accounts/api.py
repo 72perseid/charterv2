@@ -15,11 +15,13 @@ from accounts.schemas import (
     LoginIn,
     ModelConfigIn,
     ModelConfigOut,
+    ModelListIn,
+    ModelListOut,
     ModelTestOut,
     RegisterIn,
     UserOut,
 )
-from generation.provider import ProviderError, chat_completion, normalise_base_url
+from generation.provider import ProviderError, chat_completion, list_models, normalise_base_url
 
 router = Router(tags=["auth"])
 me_router = Router(tags=["me"])
@@ -160,3 +162,19 @@ def test_model_config(request: HttpRequest):
         "model": result.model,
         "duration_ms": result.duration_ms,
     }
+
+
+@me_router.post("/model-config/models", response={200: ModelListOut, 400: Detail})
+def list_provider_models(request: HttpRequest, data: ModelListIn):
+    """Ask the provider at base_url for its model list, so the user picks a
+    real name instead of guessing one. Uses the pasted key, or the stored one."""
+    api_key = data.api_key.strip()
+    if not api_key:
+        config = ModelConfig.objects.filter(user=request.user).first()
+        if config is None:
+            return 400, {"detail": "Enter an API key first."}
+        api_key = decrypt(config.api_key_encrypted)
+    try:
+        return 200, {"models": list_models(base_url=data.base_url, api_key=api_key)}
+    except ProviderError as exc:
+        return 400, {"detail": str(exc)}

@@ -95,3 +95,25 @@ def test_connection_test_reports_outcome(user_client: CsrfClient, stub):
     body = user_client.post("/api/me/model-config/test").json()
     assert body["ok"] is False
     assert "check your API key" in body["message"]
+
+
+def test_list_models_endpoint(user_client: CsrfClient, stub):
+    def ask(**fields):
+        return user_client.post(
+            "/api/me/model-config/models", json.dumps(fields), content_type="application/json"
+        )
+
+    assert ask(base_url=stub.base_url).status_code == 400  # no key anywhere yet
+    ok = ask(base_url=stub.base_url, api_key="good-key")
+    assert ok.status_code == 200 and ok.json()["models"] == [
+        "Stub-Embed",
+        "stub-large",
+        "stub-small",
+    ]
+
+    put(user_client, base_url=stub.base_url, model="stub-small", api_key="good-key")
+    stored = ask(base_url=stub.base_url)  # blank key -> stored key
+    assert stored.status_code == 200 and len(stored.json()["models"]) == 3
+
+    bad = ask(base_url=stub.base_url, api_key="bad-key")
+    assert bad.status_code == 400 and "check your API key" in bad.json()["detail"]

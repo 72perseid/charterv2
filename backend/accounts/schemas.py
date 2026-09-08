@@ -53,3 +53,12 @@ class ModelTestOut(Schema):
     message: str
     model: str | None = None
     duration_ms: int | None = None
+
+
+class ModelListIn(Schema):
+    base_url: str = Field(min_length=8, max_length=500)
+    api_key: str = Field(default="", max_length=1000)  # blank uses the stored key
+
+
+class ModelListOut(Schema):
+    models: list[str]

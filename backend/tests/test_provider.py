@@ -1,6 +1,6 @@
 import pytest
 
-from generation.provider import ProviderError, chat_completion, normalise_base_url
+from generation.provider import ProviderError, chat_completion, list_models, normalise_base_url
 from tests.stub_provider import start
 
 MESSAGES = [{"role": "user", "content": "hi"}]
@@ -77,3 +77,16 @@ def test_private_hosts_refused_by_default(settings, stub):
     settings.ALLOW_PRIVATE_ENDPOINTS = False
     with pytest.raises(ProviderError, match="https"):
         call(stub, "good-key")
+
+
+def test_list_models_sorted_case_insensitively(stub):
+    assert list_models(base_url=stub.base_url, api_key="good-key") == [
+        "Stub-Embed",
+        "stub-large",
+        "stub-small",
+    ]
+
+
+def test_list_models_bad_key(stub):
+    with pytest.raises(ProviderError, match="check your API key"):
+        list_models(base_url=stub.base_url, api_key="bad-key")

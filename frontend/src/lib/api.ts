@@ -172,7 +172,12 @@ export const modelConfig = {
   get: () => request<ModelConfig>('/me/model-config'),
   put: (fields: { base_url: string; model: string; api_key: string; temperature: number }) =>
     request<ModelConfig>('/me/model-config', { method: 'PUT', body: fields }),
-  test: () => request<ModelTest>('/me/model-config/test', { method: 'POST' })
+  test: () => request<ModelTest>('/me/model-config/test', { method: 'POST' }),
+  models: (base_url: string, api_key: string) =>
+    request<{ models: string[] }>('/me/model-config/models', {
+      method: 'POST',
+      body: { base_url, api_key }
+    })
 };
 
 export const datasets = {

@@ -7,6 +7,8 @@ the API key so one server covers the happy path and the failure paths:
   slow-key      -> sleeps past the caller's timeout
   garbage-key   -> 200 with a non-JSON body
   text-key      -> 200 whose message content is plain prose, not JSON
+
+GET /v1/models returns three canned ids (401 for bad-key).
 """
 
 from __future__ import annotations
@@ -32,6 +34,24 @@ class Handler(BaseHTTPRequestHandler):
 
     def log_message(self, *args):  # keep test output quiet
         pass
+
+    def do_GET(self):
+        key = self.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+        if self.path != "/v1/models":
+            return self._send(404, {"error": {"message": "not found"}})
+        if key == "bad-key":
+            return self._send(401, {"error": {"message": "invalid api key"}})
+        return self._send(
+            200,
+            {
+                "object": "list",
+                "data": [
+                    {"id": "stub-large", "object": "model"},
+                    {"id": "stub-small", "object": "model"},
+                    {"id": "Stub-Embed", "object": "model"},
+                ],
+            },
+        )
 
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
