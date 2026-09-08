@@ -82,6 +82,8 @@ def me(request: HttpRequest):
 
 # --- bring-your-own-key model configuration (SPEC §7, /me/model-config) ------
 
+TEST_MAX_TOKENS = 1024
+
 EMPTY_CONFIG = {
     "base_url": "",
     "model": "",
@@ -149,8 +151,10 @@ def test_model_config(request: HttpRequest):
             model=config.model,
             messages=[{"role": "user", "content": "Reply with the single word: ok"}],
             temperature=0.0,
-            max_tokens=5,
-            timeout=30,
+            # Reasoning models spend hidden tokens before the first visible word,
+            # so the cap has to leave room for that. The prompt keeps the answer short.
+            max_tokens=TEST_MAX_TOKENS,
+            timeout=60,
         )
     except ProviderError as exc:
         return 200, {"ok": False, "message": str(exc)}

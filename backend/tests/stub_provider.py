@@ -102,14 +102,20 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(b"<html>oops</html>")
             return None
         content = "Sure, here is prose." if key == "text-key" else json.dumps(CANNED_SPEC)
-        if body.get("max_tokens") == 5 or body.get("max_completion_tokens") == 5:
-            content = "ok"  # the connection test asks for one word
+        if "single word: ok" in json.dumps(body.get("messages", [])):
+            content = "ok"  # the connection test
         return self._send(
             200,
             {
                 "id": "stub-1",
                 "model": body.get("model", "stub-model"),
-                "choices": [{"index": 0, "message": {"role": "assistant", "content": content}}],
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": content},
+                        "finish_reason": "stop",
+                    }
+                ],
                 "usage": {"prompt_tokens": 12, "completion_tokens": 7, "total_tokens": 19},
             },
         )

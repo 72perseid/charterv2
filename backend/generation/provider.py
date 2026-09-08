@@ -140,6 +140,12 @@ def chat_completion(
         raise ProviderError("Endpoint answered, but not in the chat completions format.") from exc
     if not isinstance(text, str):
         raise ProviderError("Endpoint returned a non-text message.")
+    finish = data["choices"][0].get("finish_reason")
+    if not text.strip() and finish == "length":
+        raise ProviderError(
+            "The model hit its output limit before writing an answer. "
+            "Reasoning models need a larger limit; try another model."
+        )
 
     return ProviderResult(
         text=text,
