@@ -6,6 +6,9 @@
 	# Django: API, admin, and authenticated file downloads.
 	@django path /api/* /admin/* /files/*
 	handle @django {
+		request_body {
+			max_size 21MB
+		}
 		reverse_proxy api:8000
 	}
 

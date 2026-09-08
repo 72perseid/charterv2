@@ -30,8 +30,58 @@ export const t = {
     title: 'Datasets',
     upload: 'Upload',
     empty: 'No datasets yet. Upload a CSV or Excel file to begin.',
-    columns: { name: 'Name', rows: 'Rows', columns: 'Columns', status: 'Status', created: 'Created' }
+    columns: { name: 'Name', rows: 'Rows', columns: 'Columns', status: 'Status', created: 'Created' },
+    uploadForm: {
+      title: 'Upload a dataset',
+      file: 'File (.csv, .tsv, .txt, or .xlsx, up to 20 MB)',
+      name: 'Name',
+      submit: 'Upload',
+      cancel: 'Cancel',
+      uploading: 'Uploading…'
+    },
+    detail: {
+      parsing: 'Parsing the file. This page updates by itself.',
+      failed: 'Parsing failed',
+      file: 'File',
+      download: 'Download original',
+      delete: 'Delete dataset',
+      confirmDelete: 'Delete for good?',
+      newChart: 'New chart',
+      profile: 'Columns',
+      rows: 'First rows',
+      rowsOf: 'of',
+      parse: 'How it was read',
+      encoding: 'Encoding',
+      delimiter: 'Delimiter',
+      decimal: 'Decimal mark',
+      sheet: 'Sheet',
+      headerRow: 'Header row',
+      headerRowHint: 'Zero-based row number. Change it if the column names look wrong.',
+      apply: 'Apply',
+      profileColumns: {
+        name: 'Column',
+        original: 'Original name',
+        type: 'Type',
+        nulls: 'Empty',
+        distinct: 'Distinct',
+        summary: 'Summary'
+      }
+    },
+    privacy: {
+      label: 'What the model sees',
+      levels: {
+        minimal: 'Minimal',
+        statistics: 'Statistics',
+        sample: 'Sample'
+      },
+      describe: {
+        minimal: 'Column names, types, row count, empty and distinct counts.',
+        statistics: 'Minimal, plus numeric and date ranges and the top categorical values.',
+        sample: 'Statistics, plus ten rows chosen with a fixed seed. Raw values leave the server.'
+      }
+    }
   },
+  types: { integer: 'integer', number: 'number', date: 'date', boolean: 'boolean', string: 'text' },
   status: { pending: 'Pending', running: 'Running', done: 'Done', failed: 'Failed' },
   errors: {
     network: 'Could not reach the server.',

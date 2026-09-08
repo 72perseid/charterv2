@@ -9,6 +9,9 @@ dependencies = [
     "django-ninja>=1.4,<2",
     "psycopg[binary]>=3.2,<4",
     "gunicorn>=23,<24",
+    "pandas>=2.2,<4",
+    "openpyxl>=3.1,<4",
+    "pyarrow>=17",
 ]
 
 [project.optional-dependencies]
@@ -23,7 +26,7 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["charter", "accounts", "datasets"]
+packages = ["charter", "accounts", "datasets", "generation"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "charter.settings"

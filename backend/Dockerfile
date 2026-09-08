@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Dependencies first so source edits do not invalidate the layer.
 COPY pyproject.toml ./
-RUN mkdir -p charter accounts datasets && pip install --no-cache-dir ".[dev]"
+RUN mkdir -p charter accounts datasets generation && pip install --no-cache-dir ".[dev]"
 
 COPY . .
 # Admin static files are served by Caddy from a shared volume (see deploy/compose.yml).

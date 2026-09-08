@@ -46,6 +46,14 @@ CSRF_TRUSTED_ORIGINS = [
 
 DATA_DIR = Path(env("DATA_DIR", str(BASE_DIR / "data")))
 
+# Upload limits (SPEC §6.1, assumed in §14).
+UPLOAD_MAX_BYTES = 20 * 1024 * 1024
+UPLOAD_MAX_ROWS = 100_000
+UPLOAD_MAX_COLUMNS = 200
+# Per-user rate limits (SPEC §6.4).
+RATE_UPLOADS_PER_HOUR = 20
+RATE_REVISIONS_PER_HOUR = 60
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -55,6 +63,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "accounts",
     "datasets",
+    "generation",
 ]
 
 MIDDLEWARE = [

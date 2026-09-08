@@ -20,7 +20,7 @@ docker compose -f deploy/compose.yml up --build -d
 open http://localhost:8080
 ```
 
-The stack is four containers: PostgreSQL 16, the Django API, a worker (from build step 2), and Caddy serving the static frontend. Only Caddy publishes a port, on `127.0.0.1:8080` by default.
+The stack is four containers: PostgreSQL 16, the Django API, a worker that parses uploads and (from build step 4) calls the model, and Caddy serving the static frontend. Only Caddy publishes a port, on `127.0.0.1:8080` by default.
 
 To create an admin user for `/admin`:
 
@@ -36,9 +36,13 @@ docker compose -f deploy/compose.yml run --rm api ruff check .
 cd frontend && npm ci && npm run check && npm test
 ```
 
+## Files
+
+CSV, TSV, and xlsx up to 20 MB, 100 000 rows, 200 columns. Text files are decoded as UTF-8, then Windows-1254 (Turkish), then Latin-1. The delimiter is sniffed among `, ; tab |`; a semicolon implies a decimal comma, otherwise the decimal mark is detected. Dates are read day-first. Grouped numbers such as `1.250,50` are understood. For xlsx the first non-empty sheet is used and the header is the first row with at least half its cells filled; both can be overridden on the dataset page. Every choice is recorded with the dataset.
+
 ## Status
 
-Build step 1 of 6 (skeleton: accounts, session auth, empty datasets page). See SPEC.md §12.
+Build step 2 of 6 (datasets: upload, worker, ingest, profile, dataset page). See SPEC.md §12.
 
 ## License
 
