@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto, invalidateAll } from '$app/navigation';
-  import { ApiError, auth, modelConfig, type ModelTest } from '$lib/api';
+  import { ApiError, auth, modelConfig, type ModelPrice, type ModelTest } from '$lib/api';
   import { t } from '$lib/i18n/en';
   import { session } from '$lib/session.svelte';
 
@@ -15,6 +15,12 @@
   let api_key = $state('');
   // svelte-ignore state_referenced_locally
   let temperature = $state(data.config.temperature);
+  // svelte-ignore state_referenced_locally
+  let input_price: number | null = $state(data.config.input_price_per_million);
+  // svelte-ignore state_referenced_locally
+  let output_price: number | null = $state(data.config.output_price_per_million);
+  let pricing: Record<string, ModelPrice> = $state({});
+  let pricesFromProvider = $state(false);
   let error = $state('');
   let notice = $state('');
   let busy = $state(false);
@@ -33,7 +39,9 @@
     error = '';
     loadingModels = true;
     try {
-      models = (await modelConfig.models(base_url.trim(), api_key)).models;
+      const listed = await modelConfig.models(base_url.trim(), api_key);
+      models = listed.models;
+      pricing = listed.pricing;
       modelsFor = base_url.trim();
       if (models.length && (model === '' || !models.includes(model))) model = models[0];
     } catch (e) {
@@ -53,8 +61,20 @@
     base_url !== data.config.base_url ||
       model !== data.config.model ||
       temperature !== data.config.temperature ||
+      input_price !== data.config.input_price_per_million ||
+      output_price !== data.config.output_price_per_million ||
       api_key !== ''
   );
+
+  // When the provider publishes a price for the chosen model, offer it.
+  $effect(() => {
+    const price = pricing[model];
+    if (price) {
+      input_price = price.input_per_million;
+      output_price = price.output_per_million;
+      pricesFromProvider = true;
+    }
+  });
 
   async function save(event: SubmitEvent) {
     event.preventDefault();
@@ -62,7 +82,14 @@
     result = null;
     busy = true;
     try {
-      await modelConfig.put({ base_url, model, api_key, temperature });
+      await modelConfig.put({
+        base_url,
+        model,
+        api_key,
+        temperature,
+        input_price_per_million: input_price === null || Number.isNaN(input_price) ? null : input_price,
+        output_price_per_million: output_price === null || Number.isNaN(output_price) ? null : output_price
+      });
       api_key = '';
       notice = s.model.saved;
       await invalidateAll();
@@ -157,6 +184,16 @@
       <input id="temperature" type="number" min="0" max="2" step="0.1" bind:value={temperature} />
       <small>{s.model.temperatureHint}</small>
     </div>
+    <fieldset class="field prices">
+      <legend>{s.model.prices}</legend>
+      <div class="price-row">
+        <label for="input_price">{s.model.inputPrice}</label>
+        <input id="input_price" type="number" min="0" step="0.01" bind:value={input_price} oninput={() => (pricesFromProvider = false)} />
+        <label for="output_price">{s.model.outputPrice}</label>
+        <input id="output_price" type="number" min="0" step="0.01" bind:value={output_price} oninput={() => (pricesFromProvider = false)} />
+      </div>
+      <small>{pricesFromProvider ? s.model.pricesFromProvider : s.model.pricesHint}</small>
+    </fieldset>
 
     {#if error}<p class="error" role="alert">{error}</p>{/if}
     {#if notice}<p class="notice" role="status">{notice}</p>{/if}
@@ -218,6 +255,25 @@
   }
   .narrow-field input {
     max-width: 8rem;
+  }
+  .prices {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.75rem 0.6rem;
+  }
+  .prices legend {
+    font-size: 0.9rem;
+    color: var(--ink-muted);
+    padding: 0 0.3rem;
+  }
+  .price-row {
+    display: grid;
+    grid-template-columns: auto 8rem auto 8rem;
+    gap: 0.5rem 0.6rem;
+    align-items: center;
+  }
+  .price-row label {
+    margin: 0;
   }
   .model-row {
     display: flex;

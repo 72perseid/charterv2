@@ -44,6 +44,8 @@ def test_empty_config(user_client: CsrfClient):
         "temperature": 0.0,
         "has_key": False,
         "key_hint": "",
+        "input_price_per_million": None,
+        "output_price_per_million": None,
         "updated_at": None,
     }
 
@@ -105,11 +107,12 @@ def test_list_models_endpoint(user_client: CsrfClient, stub):
 
     assert ask(base_url=stub.base_url).status_code == 400  # no key anywhere yet
     ok = ask(base_url=stub.base_url, api_key="good-key")
-    assert ok.status_code == 200 and ok.json()["models"] == [
-        "Stub-Embed",
-        "stub-large",
-        "stub-small",
-    ]
+    assert ok.status_code == 200
+    assert ok.json()["models"] == ["Stub-Embed", "stub-large", "stub-small"]
+    assert ok.json()["pricing"]["stub-large"] == {
+        "input_per_million": 1.0,
+        "output_per_million": 2.0,
+    }
 
     put(user_client, base_url=stub.base_url, model="stub-small", api_key="good-key")
     stored = ask(base_url=stub.base_url)  # blank key -> stored key

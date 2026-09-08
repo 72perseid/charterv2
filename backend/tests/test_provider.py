@@ -79,12 +79,10 @@ def test_private_hosts_refused_by_default(settings, stub):
         call(stub, "good-key")
 
 
-def test_list_models_sorted_case_insensitively(stub):
-    assert list_models(base_url=stub.base_url, api_key="good-key") == [
-        "Stub-Embed",
-        "stub-large",
-        "stub-small",
-    ]
+def test_list_models_sorted_case_insensitively_with_published_prices(stub):
+    listed = list_models(base_url=stub.base_url, api_key="good-key")
+    assert listed.ids == ["Stub-Embed", "stub-large", "stub-small"]
+    assert listed.pricing == {"stub-large": {"input_per_million": 1.0, "output_per_million": 2.0}}
 
 
 def test_list_models_bad_key(stub):

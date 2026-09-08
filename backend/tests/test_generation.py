@@ -59,10 +59,10 @@ def create_chart(client, dataset_id, **overrides):
     return client.post("/api/charts", json.dumps(body), content_type="application/json")
 
 
-def set_key(client, stub, key):
+def set_key(client, stub, key, **extra):
     client.put(
         "/api/me/model-config",
-        json.dumps({"base_url": stub.base_url, "model": "stub", "api_key": key}),
+        json.dumps({"base_url": stub.base_url, "model": "stub", "api_key": key, **extra}),
         content_type="application/json",
     )
 
@@ -101,6 +101,8 @@ def test_create_chart_makes_revision_1_and_worker_finishes_it(ready, stub):
     assert revision["model"] == "stub" and revision["endpoint_host"] == "127.0.0.1"
     assert revision["prompt_version"] == "p2026-09-a"
     assert revision["usage"]["total_tokens"] == 19
+    assert revision["usage"]["reasoning_tokens"] == 3
+    assert revision["cost_usd"] is None  # no prices entered
     assert revision["duration_ms"] is not None and revision["duration_ms"] >= 0
 
     chart = client.get(f"/api/charts/{chart['id']}").json()
@@ -144,6 +146,21 @@ def test_prose_answer_is_retried_then_failed_with_record(ready, stub):
     assert "not JSON" in revision["error_message"]
     assert revision["response_text"] == "Sure, here is prose."  # kept for the record
     assert revision["request"]["attempt"] == 2
+    assert revision["usage"]["prompt_tokens"] == 24  # both attempts are paid for
+
+
+def test_cost_uses_prices_in_force_at_run_time(ready, stub):
+    client, dataset_id = ready
+    set_key(client, stub, "good-key", input_price_per_million=1.0, output_price_per_million=2.0)
+    revision_id = create_chart(client, dataset_id).json()["revisions"][0]["id"]
+    process_one_revision()
+    revision = client.get(f"/api/revisions/{revision_id}").json()
+    assert revision["cost_usd"] == pytest.approx(12 * 1e-6 + 7 * 2e-6)
+    assert revision["request"]["pricing"] == {"input_per_million": 1.0, "output_per_million": 2.0}
+
+    # Changing the prices later does not rewrite the stored cost.
+    set_key(client, stub, "good-key", input_price_per_million=100.0, output_price_per_million=100.0)
+    assert client.get(f"/api/revisions/{revision_id}").json()["cost_usd"] == revision["cost_usd"]
 
 
 def test_provider_401_fails_with_actionable_message(ready, stub):

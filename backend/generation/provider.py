@@ -182,8 +182,15 @@ def _error_detail(response: httpx.Response) -> str:
         return response.text[:200] or "no details"
 
 
-def list_models(*, base_url: str, api_key: str, timeout: float | None = None) -> list[str]:
-    """GET {base_url}/models: the provider's own list of model ids, sorted."""
+@dataclass
+class ModelList:
+    ids: list[str]
+    pricing: dict[str, dict]  # id -> {input_per_million, output_per_million}, when published
+
+
+def list_models(*, base_url: str, api_key: str, timeout: float | None = None) -> ModelList:
+    """GET {base_url}/models: the provider's own list of model ids, sorted, plus
+    prices when the provider includes them (OpenRouter does, per token in USD)."""
     base_url = normalise_base_url(base_url)
     check_endpoint_allowed(base_url)
     try:
@@ -210,4 +217,15 @@ def list_models(*, base_url: str, api_key: str, timeout: float | None = None) ->
         ids = [str(item["id"]) for item in items if isinstance(item, dict) and item.get("id")]
     except (ValueError, KeyError, TypeError) as exc:
         raise ProviderError("Endpoint answered, but not with a model list.") from exc
-    return sorted(set(ids), key=str.lower)
+    pricing: dict[str, dict] = {}
+    for item in items:
+        price = item.get("pricing") if isinstance(item, dict) else None
+        if isinstance(price, dict) and "prompt" in price and "completion" in price:
+            try:
+                pricing[str(item["id"])] = {
+                    "input_per_million": round(float(price["prompt"]) * 1_000_000, 4),
+                    "output_per_million": round(float(price["completion"]) * 1_000_000, 4),
+                }
+            except (TypeError, ValueError):
+                continue
+    return ModelList(ids=sorted(set(ids), key=str.lower), pricing=pricing)

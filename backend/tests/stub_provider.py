@@ -48,7 +48,11 @@ class Handler(BaseHTTPRequestHandler):
             {
                 "object": "list",
                 "data": [
-                    {"id": "stub-large", "object": "model"},
+                    {
+                        "id": "stub-large",
+                        "object": "model",
+                        "pricing": {"prompt": "0.000001", "completion": "0.000002"},
+                    },
                     {"id": "stub-small", "object": "model"},
                     {"id": "Stub-Embed", "object": "model"},
                 ],
@@ -116,7 +120,12 @@ class Handler(BaseHTTPRequestHandler):
                         "finish_reason": "stop",
                     }
                 ],
-                "usage": {"prompt_tokens": 12, "completion_tokens": 7, "total_tokens": 19},
+                "usage": {
+                    "prompt_tokens": 12,
+                    "completion_tokens": 7,
+                    "total_tokens": 19,
+                    "completion_tokens_details": {"reasoning_tokens": 3},
+                },
             },
         )
 

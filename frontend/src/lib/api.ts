@@ -158,8 +158,12 @@ export type ModelConfig = {
   temperature: number;
   has_key: boolean;
   key_hint: string;
+  input_price_per_million: number | null;
+  output_price_per_million: number | null;
   updated_at: string | null;
 };
+
+export type ModelPrice = { input_per_million: number; output_per_million: number };
 
 export type ModelTest = {
   ok: boolean;
@@ -170,11 +174,17 @@ export type ModelTest = {
 
 export const modelConfig = {
   get: () => request<ModelConfig>('/me/model-config'),
-  put: (fields: { base_url: string; model: string; api_key: string; temperature: number }) =>
-    request<ModelConfig>('/me/model-config', { method: 'PUT', body: fields }),
+  put: (fields: {
+    base_url: string;
+    model: string;
+    api_key: string;
+    temperature: number;
+    input_price_per_million: number | null;
+    output_price_per_million: number | null;
+  }) => request<ModelConfig>('/me/model-config', { method: 'PUT', body: fields }),
   test: () => request<ModelTest>('/me/model-config/test', { method: 'POST' }),
   models: (base_url: string, api_key: string) =>
-    request<{ models: string[] }>('/me/model-config/models', {
+    request<{ models: string[]; pricing: Record<string, ModelPrice> }>('/me/model-config/models', {
       method: 'POST',
       body: { base_url, api_key }
     })
@@ -192,6 +202,7 @@ export type RevisionSummary = {
   error_message: string | null;
   model: string;
   duration_ms: number | null;
+  cost_usd: number | null;
   created_at: string;
 };
 
@@ -205,6 +216,7 @@ export type Revision = RevisionSummary & {
     messages: { role: string; content: string }[];
     parameters: Record<string, unknown>;
     adjustments: string[];
+    pricing?: { input_per_million: number | null; output_per_million: number | null };
   } | null;
   response_text: string | null;
   endpoint_host: string;

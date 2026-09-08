@@ -58,6 +58,10 @@ class ModelConfig(models.Model):
     model = models.CharField(max_length=200)
     api_key_encrypted = models.BinaryField()
     temperature = models.FloatField(default=0.0)
+    # USD per million tokens, entered by the user (or prefilled from a provider
+    # that publishes prices). Only used to estimate the cost of each revision.
+    input_price_per_million = models.FloatField(null=True, blank=True)
+    output_price_per_million = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

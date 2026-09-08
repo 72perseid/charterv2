@@ -99,6 +99,7 @@ def generate(revision: ChartRevision) -> None:
 
     retry_error: str | None = None
     last_result: ProviderResult | None = None
+    usage_total: dict[str, int] = {}
     for attempt in range(2):
         messages = build_messages(
             profile_for_model=visible,
@@ -121,7 +122,8 @@ def generate(revision: ChartRevision) -> None:
             seed=settings.GENERATION_SEED,
         )
         last_result = result
-        _record(revision, messages, result, attempt)
+        _add_usage(usage_total, result.usage)
+        _record(revision, messages, result, attempt, usage_total, config)
         try:
             validated = validate_spec(
                 result.text,
@@ -152,18 +154,55 @@ def generate(revision: ChartRevision) -> None:
     assert last_result is not None
 
 
-def _record(revision: ChartRevision, messages: list[dict], result: ProviderResult, attempt: int):
+USAGE_KEYS = ("prompt_tokens", "completion_tokens", "total_tokens")
+
+
+def _add_usage(total: dict[str, int], usage: dict | None) -> None:
+    if not usage:
+        return
+    for key in USAGE_KEYS:
+        if isinstance(usage.get(key), int):
+            total[key] = total.get(key, 0) + usage[key]
+    details = usage.get("completion_tokens_details")
+    if isinstance(details, dict) and isinstance(details.get("reasoning_tokens"), int):
+        total["reasoning_tokens"] = total.get("reasoning_tokens", 0) + details["reasoning_tokens"]
+
+
+def estimate_cost(usage: dict | None, config: ModelConfig) -> float | None:
+    """USD, from the prices the user entered. None when prices or usage are unknown."""
+    if not usage or config.input_price_per_million is None:
+        return None
+    output_price = config.output_price_per_million or 0.0
+    prompt = usage.get("prompt_tokens", 0)
+    completion = usage.get("completion_tokens", 0)
+    return round(prompt * config.input_price_per_million / 1e6 + completion * output_price / 1e6, 6)
+
+
+def _record(
+    revision: ChartRevision,
+    messages: list[dict],
+    result: ProviderResult,
+    attempt: int,
+    usage_total: dict[str, int],
+    config: ModelConfig,
+):
     """The exact request and raw response, kept even when validation fails."""
     revision.request = {
         "attempt": attempt + 1,
         "messages": messages,
         "parameters": {k: v for k, v in result.request_body.items() if k not in {"messages"}},
         "adjustments": result.adjustments,
+        "pricing": {
+            "input_per_million": config.input_price_per_million,
+            "output_per_million": config.output_price_per_million,
+        },
+        "last_attempt_usage": result.usage,
     }
     revision.response_text = result.text
-    revision.usage = result.usage
+    revision.usage = dict(usage_total) if usage_total else result.usage
+    revision.cost_usd = estimate_cost(revision.usage, config)
     revision.model = result.model or revision.model
-    revision.save(update_fields=["request", "response_text", "usage", "model"])
+    revision.save(update_fields=["request", "response_text", "usage", "cost_usd", "model"])
 
 
 def _finish(revision: ChartRevision) -> None:

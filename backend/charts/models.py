@@ -53,7 +53,8 @@ class ChartRevision(models.Model):
     seed = models.IntegerField(null=True, blank=True)
     prompt_version = models.CharField(max_length=40, blank=True)
     app_version = models.CharField(max_length=40, blank=True)
-    usage = models.JSONField(null=True, blank=True)
+    usage = models.JSONField(null=True, blank=True)  # summed over attempts
+    cost_usd = models.FloatField(null=True, blank=True)  # at the prices in force at run time
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     duration_ms = models.IntegerField(null=True, blank=True)

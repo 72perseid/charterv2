@@ -90,6 +90,8 @@ EMPTY_CONFIG = {
     "temperature": 0.0,
     "has_key": False,
     "key_hint": "",
+    "input_price_per_million": None,
+    "output_price_per_million": None,
     "updated_at": None,
 }
 
@@ -102,6 +104,8 @@ def config_out(config: ModelConfig) -> dict:
         "temperature": config.temperature,
         "has_key": True,
         "key_hint": ("…" + key[-4:]) if len(key) >= 8 else "…",
+        "input_price_per_million": config.input_price_per_million,
+        "output_price_per_million": config.output_price_per_million,
         "updated_at": config.updated_at,
     }
 
@@ -132,6 +136,8 @@ def put_model_config(request: HttpRequest, data: ModelConfigIn):
             "base_url": base_url,
             "model": data.model.strip(),
             "temperature": data.temperature,
+            "input_price_per_million": data.input_price_per_million,
+            "output_price_per_million": data.output_price_per_million,
             "api_key_encrypted": encrypted,
         },
     )
@@ -182,6 +188,7 @@ def list_provider_models(request: HttpRequest, data: ModelListIn):
             return 400, {"detail": "Enter an API key first."}
         api_key = decrypt(config.api_key_encrypted)
     try:
-        return 200, {"models": list_models(base_url=data.base_url, api_key=api_key)}
+        listed = list_models(base_url=data.base_url, api_key=api_key)
+        return 200, {"models": listed.ids, "pricing": listed.pricing}
     except ProviderError as exc:
         return 400, {"detail": str(exc)}

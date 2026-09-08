@@ -101,7 +101,24 @@
           <dt>{s.record.promptVersion}</dt><dd>{rev.prompt_version}</dd>
           <dt>{s.record.appVersion}</dt><dd>{rev.app_version}</dd>
           <dt>{s.record.duration}</dt><dd>{rev.duration_ms !== null ? `${formatInt(rev.duration_ms)} ms` : '—'}</dd>
-          <dt>{s.record.tokens}</dt><dd>{rev.usage ? formatInt(rev.usage.total_tokens ?? 0) : '—'}</dd>
+          <dt>{s.record.tokens}</dt>
+          <dd>
+            {#if rev.usage}
+              {formatInt(rev.usage.total_tokens ?? 0)}
+              <span class="muted">
+                ({s.record.tokensDetail
+                  .replace('{prompt}', formatInt(rev.usage.prompt_tokens ?? 0))
+                  .replace('{completion}', formatInt(rev.usage.completion_tokens ?? 0))
+                  .replace('{reasoning}', rev.usage.reasoning_tokens ? s.record.reasoning.replace('{n}', formatInt(rev.usage.reasoning_tokens)) : '')})
+              </span>
+            {:else}—{/if}
+          </dd>
+          <dt>{s.record.cost}</dt>
+          <dd>
+            {#if rev.cost_usd !== null}
+              ${rev.cost_usd < 0.01 ? rev.cost_usd.toFixed(5) : rev.cost_usd.toFixed(3)}
+            {:else}<span class="muted">{s.record.costUnknown}</span>{/if}
+          </dd>
           <dt>{s.record.attempt}</dt><dd>{rev.request?.attempt ?? rev.attempts}</dd>
         </dl>
         {#if rev.request?.adjustments.length}
@@ -196,6 +213,9 @@
   .record dd {
     margin: 0;
     font-variant-numeric: tabular-nums;
+  }
+  .muted {
+    color: var(--ink-muted);
   }
   .adjust {
     color: var(--warning);

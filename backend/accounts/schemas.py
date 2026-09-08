@@ -37,6 +37,8 @@ class ModelConfigIn(Schema):
     model: str = Field(min_length=1, max_length=200)
     api_key: str = Field(default="", max_length=1000)  # blank keeps the stored key
     temperature: float = Field(default=0.0, ge=0.0, le=2.0)
+    input_price_per_million: float | None = Field(default=None, ge=0)
+    output_price_per_million: float | None = Field(default=None, ge=0)
 
 
 class ModelConfigOut(Schema):
@@ -45,6 +47,8 @@ class ModelConfigOut(Schema):
     temperature: float
     has_key: bool
     key_hint: str
+    input_price_per_million: float | None
+    output_price_per_million: float | None
     updated_at: datetime | None
 
 
@@ -60,5 +64,11 @@ class ModelListIn(Schema):
     api_key: str = Field(default="", max_length=1000)  # blank uses the stored key
 
 
+class ModelPrice(Schema):
+    input_per_million: float
+    output_per_million: float
+
+
 class ModelListOut(Schema):
     models: list[str]
+    pricing: dict[str, ModelPrice]  # only for models whose provider publishes prices

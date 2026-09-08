@@ -46,6 +46,7 @@ class RevisionOut(Schema):
     prompt_version: str
     app_version: str
     usage: dict[str, Any] | None
+    cost_usd: float | None
     started_at: datetime | None
     finished_at: datetime | None
     duration_ms: int | None
@@ -64,6 +65,7 @@ class RevisionSummary(Schema):
     error_message: str | None
     model: str
     duration_ms: int | None
+    cost_usd: float | None
     created_at: datetime
 
 
