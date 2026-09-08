@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from accounts.models import User
+from accounts.models import ModelConfig, User
 
 
 @admin.register(User)
@@ -16,3 +16,9 @@ class UserAdmin(BaseUserAdmin):
         ("Dates", {"fields": ("last_login", "date_joined")}),
     )
     add_fieldsets = ((None, {"classes": ("wide",), "fields": ("email", "password1", "password2")}),)
+
+
+@admin.register(ModelConfig)
+class ModelConfigAdmin(admin.ModelAdmin):
+    list_display = ("user", "base_url", "model", "temperature", "updated_at")
+    exclude = ("api_key_encrypted",)  # never shown, even to the operator, through the admin

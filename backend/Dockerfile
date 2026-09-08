@@ -9,7 +9,7 @@ RUN mkdir -p charter accounts datasets generation && pip install --no-cache-dir 
 
 COPY . .
 # Admin static files are served by Caddy from a shared volume (see deploy/compose.yml).
-RUN SECRET_KEY=build DATABASE_URL=postgres://x:x@x/x python manage.py collectstatic --noinput
+RUN SECRET_KEY=build FERNET_KEY=build DATABASE_URL=postgres://x:x@x/x python manage.py collectstatic --noinput
 
 EXPOSE 8000
 CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn charter.wsgi:application --bind 0.0.0.0:8000 --workers 3 --access-logfile -"]

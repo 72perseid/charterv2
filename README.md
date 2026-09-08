@@ -15,7 +15,7 @@ Only the dataset profile (column names, inferred types, null and distinct counts
 Requirements: Docker with the Compose plugin.
 
 ```sh
-cp deploy/.env.example deploy/.env      # then set SECRET_KEY and POSTGRES_PASSWORD
+cp deploy/.env.example deploy/.env      # then set SECRET_KEY, POSTGRES_PASSWORD, FERNET_KEY
 docker compose -f deploy/compose.yml up --build -d
 open http://localhost:8080
 ```
@@ -36,13 +36,17 @@ docker compose -f deploy/compose.yml run --rm api ruff check .
 cd frontend && npm ci && npm run check && npm test
 ```
 
+## Model access
+
+Each user stores an OpenAI-compatible base URL, a model name, and their own API key under Settings. The server makes one HTTP call to `{base_url}/chat/completions`; there is no vendor SDK and no key of Chart-er's own. Keys are encrypted at rest with the operator's `FERNET_KEY`, which means the operator can decrypt them. By default the server only calls `https://` endpoints on public hosts; set `ALLOW_PRIVATE_ENDPOINTS=true` to point it at a local model.
+
 ## Files
 
 CSV, TSV, and xlsx up to 20 MB, 100 000 rows, 200 columns. Text files are decoded as UTF-8, then Windows-1254 (Turkish), then Latin-1. The delimiter is sniffed among `, ; tab |`; a semicolon implies a decimal comma, otherwise the decimal mark is detected. Dates are read day-first. Grouped numbers such as `1.250,50` are understood. For xlsx the first non-empty sheet is used and the header is the first row with at least half its cells filled; both can be overridden on the dataset page. Every choice is recorded with the dataset.
 
 ## Status
 
-Build step 2 of 6 (datasets: upload, worker, ingest, profile, dataset page). See SPEC.md §12.
+Build step 3 of 6 (model configuration: settings page, encrypted keys, connection test). See SPEC.md §12.
 
 ## License
 

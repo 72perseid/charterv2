@@ -38,6 +38,9 @@ def database_from_url(url: str) -> dict:
 
 
 SECRET_KEY = env("SECRET_KEY")
+# Encrypts users' model API keys at rest (SPEC §2). Generate with
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+FERNET_KEY = env("FERNET_KEY")
 DEBUG = env_bool("DEBUG", False)
 ALLOWED_HOSTS = [h.strip() for h in env("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h]
 CSRF_TRUSTED_ORIGINS = [
@@ -53,6 +56,13 @@ UPLOAD_MAX_COLUMNS = 200
 # Per-user rate limits (SPEC §6.4).
 RATE_UPLOADS_PER_HOUR = 20
 RATE_REVISIONS_PER_HOUR = 60
+
+# Model endpoints. Users supply any OpenAI-compatible base URL. By default the
+# server refuses private and loopback addresses so one user cannot make it call
+# services on the box or its network; an operator running a local model sets
+# ALLOW_PRIVATE_ENDPOINTS=true and accepts that.
+ALLOW_PRIVATE_ENDPOINTS = env_bool("ALLOW_PRIVATE_ENDPOINTS", False)
+PROVIDER_TIMEOUT_SECONDS = 90
 
 INSTALLED_APPS = [
     "django.contrib.admin",

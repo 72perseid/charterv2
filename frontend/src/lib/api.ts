@@ -152,6 +152,29 @@ export const auth = {
   logout: () => request<void>('/auth/logout', { method: 'POST' })
 };
 
+export type ModelConfig = {
+  base_url: string;
+  model: string;
+  temperature: number;
+  has_key: boolean;
+  key_hint: string;
+  updated_at: string | null;
+};
+
+export type ModelTest = {
+  ok: boolean;
+  message: string;
+  model: string | null;
+  duration_ms: number | null;
+};
+
+export const modelConfig = {
+  get: () => request<ModelConfig>('/me/model-config'),
+  put: (fields: { base_url: string; model: string; api_key: string; temperature: number }) =>
+    request<ModelConfig>('/me/model-config', { method: 'PUT', body: fields }),
+  test: () => request<ModelTest>('/me/model-config/test', { method: 'POST' })
+};
+
 export const datasets = {
   list: () => request<Dataset[]>('/datasets'),
   get: (id: number) => request<DatasetDetail>(`/datasets/${id}`),

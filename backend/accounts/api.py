@@ -8,10 +8,21 @@ from ninja import Router
 from ninja.errors import HttpError
 from ninja.utils import check_csrf
 
-from accounts.models import User
-from accounts.schemas import Detail, LoginIn, RegisterIn, UserOut
+from accounts.crypto import decrypt, encrypt
+from accounts.models import ModelConfig, User
+from accounts.schemas import (
+    Detail,
+    LoginIn,
+    ModelConfigIn,
+    ModelConfigOut,
+    ModelTestOut,
+    RegisterIn,
+    UserOut,
+)
+from generation.provider import ProviderError, chat_completion, normalise_base_url
 
 router = Router(tags=["auth"])
+me_router = Router(tags=["me"])
 
 
 def require_csrf(request: HttpRequest) -> None:
@@ -65,3 +76,87 @@ def logout_view(request: HttpRequest):
 def me(request: HttpRequest):
     get_token(request)
     return 200, request.user
+
+
+# --- bring-your-own-key model configuration (SPEC §7, /me/model-config) ------
+
+EMPTY_CONFIG = {
+    "base_url": "",
+    "model": "",
+    "temperature": 0.0,
+    "has_key": False,
+    "key_hint": "",
+    "updated_at": None,
+}
+
+
+def config_out(config: ModelConfig) -> dict:
+    key = decrypt(config.api_key_encrypted)
+    return {
+        "base_url": config.base_url,
+        "model": config.model,
+        "temperature": config.temperature,
+        "has_key": True,
+        "key_hint": ("…" + key[-4:]) if len(key) >= 8 else "…",
+        "updated_at": config.updated_at,
+    }
+
+
+@me_router.get("/model-config", response=ModelConfigOut)
+def get_model_config(request: HttpRequest):
+    config = ModelConfig.objects.filter(user=request.user).first()
+    return config_out(config) if config else EMPTY_CONFIG
+
+
+@me_router.put("/model-config", response={200: ModelConfigOut, 400: Detail})
+def put_model_config(request: HttpRequest, data: ModelConfigIn):
+    try:
+        base_url = normalise_base_url(data.base_url)
+    except ProviderError as exc:
+        return 400, {"detail": str(exc)}
+    config = ModelConfig.objects.filter(user=request.user).first()
+    api_key = data.api_key.strip()
+    if not api_key:
+        if config is None:
+            return 400, {"detail": "An API key is required."}
+        encrypted = bytes(config.api_key_encrypted)
+    else:
+        encrypted = encrypt(api_key)
+    config, _ = ModelConfig.objects.update_or_create(
+        user=request.user,
+        defaults={
+            "base_url": base_url,
+            "model": data.model.strip(),
+            "temperature": data.temperature,
+            "api_key_encrypted": encrypted,
+        },
+    )
+    return 200, config_out(config)
+
+
+@me_router.post("/model-config/test", response={200: ModelTestOut, 400: Detail})
+def test_model_config(request: HttpRequest):
+    """One tiny call with the stored settings. Reports what happened (SPEC §7)."""
+    config = ModelConfig.objects.filter(user=request.user).first()
+    if config is None:
+        return 400, {"detail": "Save a model configuration first."}
+    try:
+        result = chat_completion(
+            base_url=config.base_url,
+            api_key=decrypt(config.api_key_encrypted),
+            model=config.model,
+            messages=[{"role": "user", "content": "Reply with the single word: ok"}],
+            temperature=0.0,
+            max_tokens=5,
+            timeout=30,
+        )
+    except ProviderError as exc:
+        return 200, {"ok": False, "message": str(exc)}
+    except ValueError as exc:
+        return 200, {"ok": False, "message": str(exc)}
+    return 200, {
+        "ok": True,
+        "message": f"Connected. The model answered: {result.text.strip()[:40]!r}",
+        "model": result.model,
+        "duration_ms": result.duration_ms,
+    }

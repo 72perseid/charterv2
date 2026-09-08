@@ -1,6 +1,7 @@
 from ninja import NinjaAPI
 from ninja.security import django_auth
 
+from accounts.api import me_router
 from accounts.api import router as accounts_router
 from datasets.api import router as datasets_router
 
@@ -12,4 +13,5 @@ api = NinjaAPI(
 )
 
 api.add_router("/auth", accounts_router)
+api.add_router("/me", me_router)
 api.add_router("/datasets", datasets_router)

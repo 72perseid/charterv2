@@ -48,3 +48,21 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self) -> str:
         return self.email
+
+
+class ModelConfig(models.Model):
+    """One row per user: the bring-your-own-key settings (SPEC §5)."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="model_config")
+    base_url = models.CharField(max_length=500)
+    model = models.CharField(max_length=200)
+    api_key_encrypted = models.BinaryField()
+    temperature = models.FloatField(default=0.0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "model_configs"
+
+    def __str__(self) -> str:
+        return f"{self.user} → {self.model} @ {self.base_url}"

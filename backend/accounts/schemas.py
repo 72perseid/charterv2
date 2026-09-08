@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from ninja import Schema
@@ -29,3 +30,26 @@ class UserOut(Schema):
 
 class Detail(Schema):
     detail: str
+
+
+class ModelConfigIn(Schema):
+    base_url: str = Field(min_length=8, max_length=500)
+    model: str = Field(min_length=1, max_length=200)
+    api_key: str = Field(default="", max_length=1000)  # blank keeps the stored key
+    temperature: float = Field(default=0.0, ge=0.0, le=2.0)
+
+
+class ModelConfigOut(Schema):
+    base_url: str
+    model: str
+    temperature: float
+    has_key: bool
+    key_hint: str
+    updated_at: datetime | None
+
+
+class ModelTestOut(Schema):
+    ok: bool
+    message: str
+    model: str | None = None
+    duration_ms: int | None = None

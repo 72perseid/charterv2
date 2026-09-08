@@ -2,6 +2,12 @@ import pytest
 from django.test import Client
 
 
+@pytest.fixture(autouse=True)
+def public_endpoints_default(settings):
+    """Tests opt in to local endpoints explicitly; the default stays strict."""
+    settings.ALLOW_PRIVATE_ENDPOINTS = False
+
+
 class CsrfClient(Client):
     """Test client that behaves like the browser: every request carries the
     current csrftoken cookie as the X-CSRFToken header. Django rotates the

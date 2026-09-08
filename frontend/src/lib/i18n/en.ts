@@ -82,6 +82,35 @@ export const t = {
     }
   },
   types: { integer: 'integer', number: 'number', date: 'date', boolean: 'boolean', string: 'text' },
+  settings: {
+    title: 'Settings',
+    model: {
+      title: 'Model',
+      lead: 'Chart-er sends the dataset profile to an OpenAI-compatible chat endpoint that you choose and pay for. The key is stored encrypted on this server; the operator holds the encryption key.',
+      baseUrl: 'Base URL',
+      baseUrlHint: 'The address up to and including /v1. For example https://api.openai.com/v1, https://openrouter.ai/api/v1, or https://api.anthropic.com/v1.',
+      model: 'Model',
+      modelHint: 'The model name exactly as the provider lists it.',
+      apiKey: 'API key',
+      apiKeyKeep: 'A key ending in {hint} is stored. Leave blank to keep it.',
+      apiKeyNew: 'Pasted once, never shown again.',
+      temperature: 'Temperature',
+      temperatureHint: '0 gives the most repeatable charts.',
+      save: 'Save',
+      saved: 'Saved.',
+      test: 'Test connection',
+      testing: 'Testing…',
+      connected: 'Connected',
+      notConnected: 'Not connected',
+      unsaved: 'Save the configuration, then test it.'
+    },
+    account: {
+      title: 'Account',
+      email: 'Email',
+      name: 'Name',
+      signOut: 'Sign out'
+    }
+  },
   status: { pending: 'Pending', running: 'Running', done: 'Done', failed: 'Failed' },
   errors: {
     network: 'Could not reach the server.',
