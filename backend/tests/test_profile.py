@@ -88,3 +88,11 @@ def test_privacy_levels():
     sample = profile_for_model(profile, "sample", frame)
     assert len(sample["sample_rows"]) == 4
     assert sample_rows(frame) == sample_rows(frame)  # fixed seed
+
+
+def test_identifier_columns_have_no_top_values():
+    frame = pd.DataFrame({"id": pd.Series(["KH-1", "KH-2", "KH-3"], dtype="string")})
+    options = {"types": {"id": "string"}, "original_columns": ["id"]}
+    column = build_profile(frame, options)["columns"][0]
+    assert "top_values" not in column
+    assert column["distinct_count"] == 3 and column["max_length"] == 4

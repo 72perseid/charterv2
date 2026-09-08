@@ -16,7 +16,7 @@ Requirements: Docker with the Compose plugin.
 
 ```sh
 cp deploy/.env.example deploy/.env      # then set SECRET_KEY, POSTGRES_PASSWORD, FERNET_KEY
-docker compose -f deploy/compose.yml up --build -d
+APP_VERSION=$(git rev-parse --short HEAD) docker compose -f deploy/compose.yml up --build -d
 open http://localhost:8080
 ```
 
@@ -40,13 +40,17 @@ cd frontend && npm ci && npm run check && npm test
 
 Each user stores an OpenAI-compatible base URL, a model name, and their own API key under Settings. The server makes one HTTP call to `{base_url}/chat/completions`; there is no vendor SDK and no key of Chart-er's own. Keys are encrypted at rest with the operator's `FERNET_KEY`, which means the operator can decrypt them. By default the server only calls `https://` endpoints on public hosts; set `ALLOW_PRIVATE_ENDPOINTS=true` to point it at a local model.
 
+## Generating a chart
+
+The worker builds a prompt from the template in `backend/prompts/` (versioned; `p2026-09-a` today), the dataset profile at the dataset's privacy level, the chosen fields, and the request. It asks for a JSON object, validates the answer against the vendored Vega-Lite v6 schema, replaces or drops encodings that name fields the dataset does not have, strips anything that would carry data, and refuses layered or concatenated specs. One retry with the validation error appended, then `failed` with the reason. Every revision keeps the exact messages sent, the parameters after any per-endpoint adjustments, the raw response, model, endpoint host, temperature, seed, prompt version, app version, token usage, and timings.
+
 ## Files
 
 CSV, TSV, and xlsx up to 20 MB, 100 000 rows, 200 columns. Text files are decoded as UTF-8, then Windows-1254 (Turkish), then Latin-1. The delimiter is sniffed among `, ; tab |`; a semicolon implies a decimal comma, otherwise the decimal mark is detected. Dates are read day-first. Grouped numbers such as `1.250,50` are understood. For xlsx the first non-empty sheet is used and the header is the first row with at least half its cells filled; both can be overridden on the dataset page. Every choice is recorded with the dataset.
 
 ## Status
 
-Build step 3 of 6 (model configuration: settings page, encrypted keys, connection test). See SPEC.md §12.
+Build step 4 of 6 (generation: prompt, validation, retry, provenance record, chart form, polling, rendering). See SPEC.md §12.
 
 ## License
 

@@ -17,7 +17,7 @@ from datasets.tasks import load_rows, mark_for_reingest
 
 router = Router(tags=["datasets"])
 
-ROWS_MAX_LIMIT = 1000
+ROWS_MAX_LIMIT = 100_000  # the chart page needs every row; SPEC §6.1 caps datasets at this
 
 
 def own(request: HttpRequest, dataset_id: int) -> Dataset:

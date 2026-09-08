@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto, invalidateAll } from '$app/navigation';
   import { ApiError, datasets, isBusy, type ColumnType, type PrivacyLevel } from '$lib/api';
+  import ChartForm from '$lib/components/ChartForm.svelte';
   import DataTable from '$lib/components/DataTable.svelte';
   import PrivacyPicker from '$lib/components/PrivacyLevel.svelte';
   import ProfileTable from '$lib/components/ProfileTable.svelte';
@@ -86,8 +87,7 @@
     <button type="button" class="quiet danger" onclick={remove}>
       {confirmingDelete ? s.confirmDelete : s.delete}
     </button>
-    <!-- Chart creation arrives in build step 4. -->
-    <button type="button" disabled>{s.newChart}</button>
+    <a class="button" href="#new-chart" class:disabled={d.status !== 'done'}>{s.newChart}</a>
   </div>
 </div>
 
@@ -146,6 +146,10 @@
 </section>
 
 {#if d.status === 'done' && d.profile.columns}
+  <section id="new-chart">
+    <ChartForm datasetId={d.id} columns={d.profile.columns} privacyLevel={d.privacy_level} />
+  </section>
+
   <section>
     <h2>{s.profile}</h2>
     <ProfileTable columns={d.profile.columns} />
@@ -172,6 +176,10 @@
   }
   .danger {
     color: var(--destructive);
+  }
+  .disabled {
+    pointer-events: none;
+    opacity: 0.6;
   }
   .failed {
     border: 1px solid var(--destructive);

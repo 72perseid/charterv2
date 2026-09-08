@@ -51,9 +51,12 @@ def column_profile(name: str, original: str, series: pd.Series, kind: str) -> di
     elif kind == "boolean":
         out["true_count"] = int(non_null.sum())
     else:
-        counts = non_null.value_counts().head(TOP_VALUES)
-        out["top_values"] = [{"value": str(v), "count": int(c)} for v, c in counts.items()]
         out["max_length"] = int(non_null.astype(str).str.len().max())
+        # An all-unique text column is an identifier: its "top values" would be
+        # five arbitrary IDs, useless for charting and needlessly revealing.
+        if out["distinct_count"] < len(non_null):
+            counts = non_null.value_counts().head(TOP_VALUES)
+            out["top_values"] = [{"value": str(v), "count": int(c)} for v, c in counts.items()]
     return out
 
 

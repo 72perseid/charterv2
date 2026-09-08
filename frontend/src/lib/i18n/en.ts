@@ -82,6 +82,49 @@ export const t = {
     }
   },
   types: { integer: 'integer', number: 'number', date: 'date', boolean: 'boolean', string: 'text' },
+  charts: {
+    title: 'Charts',
+    empty: 'No charts yet. Open a dataset and describe the chart you want.',
+    columns: { title: 'Title', dataset: 'Dataset', status: 'Status', revisions: 'Revisions', updated: 'Updated' },
+    form: {
+      title: 'New chart',
+      chartTitle: 'Title (optional)',
+      x: 'X axis',
+      y: 'Y axis',
+      color: 'Color (optional)',
+      none: '— none —',
+      prompt: 'Describe the chart',
+      promptHint: 'For example: total finds per area as bars, or weight over time as a line.',
+      privacyNote: 'The model will see: {level}.',
+      create: 'Create chart',
+      creating: 'Creating…'
+    },
+    page: {
+      dataset: 'Dataset',
+      revision: 'Revision',
+      waiting: 'Waiting for the model.',
+      running: 'The model is writing the specification.',
+      failed: 'Generation failed',
+      tabs: { chart: 'Chart', spec: 'Specification', request: 'Request and response' },
+      corrections: 'Corrections applied to the model\'s answer',
+      adjustments: 'Parameters adjusted for this endpoint',
+      record: {
+        model: 'Model',
+        endpoint: 'Endpoint',
+        temperature: 'Temperature',
+        seed: 'Seed',
+        promptVersion: 'Prompt version',
+        appVersion: 'App version',
+        duration: 'Duration',
+        tokens: 'Tokens',
+        attempt: 'Attempt'
+      },
+      messages: 'Messages sent',
+      response: 'Raw response',
+      delete: 'Delete chart',
+      confirmDelete: 'Delete for good?'
+    }
+  },
   settings: {
     title: 'Settings',
     model: {

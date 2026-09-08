@@ -180,6 +180,80 @@ export const modelConfig = {
     })
 };
 
+export type RevisionSummary = {
+  id: number;
+  revision_no: number;
+  parent_id: number | null;
+  x_field: string;
+  y_field: string;
+  color_field: string | null;
+  prompt: string;
+  status: Status;
+  error_message: string | null;
+  model: string;
+  duration_ms: number | null;
+  created_at: string;
+};
+
+export type Revision = RevisionSummary & {
+  chart_id: number;
+  attempts: number;
+  spec: Record<string, unknown> | null;
+  corrections: string[];
+  request: {
+    attempt: number;
+    messages: { role: string; content: string }[];
+    parameters: Record<string, unknown>;
+    adjustments: string[];
+  } | null;
+  response_text: string | null;
+  endpoint_host: string;
+  temperature: number | null;
+  seed: number | null;
+  prompt_version: string;
+  app_version: string;
+  usage: Record<string, number> | null;
+  started_at: string | null;
+  finished_at: string | null;
+};
+
+export type Chart = {
+  id: number;
+  dataset_id: number;
+  dataset_name: string;
+  title: string;
+  current_revision_id: number | null;
+  current_status: Status | null;
+  revision_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ChartDetail = Chart & { revisions: RevisionSummary[] };
+
+export type RevisionFields = {
+  x_field: string;
+  y_field: string;
+  color_field: string | null;
+  prompt: string;
+};
+
+export const charts = {
+  list: () => request<Chart[]>('/charts'),
+  get: (id: number) => request<ChartDetail>(`/charts/${id}`),
+  create: (fields: RevisionFields & { dataset_id: number; title: string }) =>
+    request<ChartDetail>('/charts', { method: 'POST', body: fields }),
+  patch: (id: number, fields: { title?: string; current_revision_id?: number }) =>
+    request<ChartDetail>(`/charts/${id}`, { method: 'PATCH', body: fields }),
+  remove: (id: number) => request<void>(`/charts/${id}`, { method: 'DELETE' }),
+  revise: (id: number, fields: RevisionFields & { parent_id: number | null }) =>
+    request<Revision>(`/charts/${id}/revisions`, { method: 'POST', body: fields })
+};
+
+export const revisions = {
+  get: (id: number) => request<Revision>(`/revisions/${id}`)
+};
+
 export const datasets = {
   list: () => request<Dataset[]>('/datasets'),
   get: (id: number) => request<DatasetDetail>(`/datasets/${id}`),

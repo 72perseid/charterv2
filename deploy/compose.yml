@@ -21,7 +21,10 @@ services:
     restart: unless-stopped
 
   api:
-    build: ../backend
+    build:
+      context: ../backend
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
     env_file: .env
     environment:
       DATABASE_URL: postgres://charter:${POSTGRES_PASSWORD}@postgres:5432/charter
@@ -35,7 +38,10 @@ services:
     restart: unless-stopped
 
   worker:
-    build: ../backend
+    build:
+      context: ../backend
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
     command: python manage.py runworker
     env_file: .env
     environment:

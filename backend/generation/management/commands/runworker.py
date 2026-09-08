@@ -1,7 +1,7 @@
 """
 The background worker (SPEC §2, "Background work"). One process, one loop:
 claim a pending row with SELECT ... FOR UPDATE SKIP LOCKED, do the work, repeat.
-Datasets are ingested here; chart revisions join in build step 4.
+Datasets are ingested and chart revisions generated here.
 """
 
 import logging
@@ -11,12 +11,13 @@ import time
 from django.core.management.base import BaseCommand
 
 from datasets.tasks import process_one_dataset
+from generation.tasks import process_one_revision
 
 log = logging.getLogger("charter.worker")
 
 
 class Command(BaseCommand):
-    help = "Process pending datasets (and, later, chart revisions) until stopped."
+    help = "Process pending datasets and chart revisions until stopped."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -38,7 +39,7 @@ class Command(BaseCommand):
         log.info("worker started")
 
         while not stop:
-            did_work = process_one_dataset()
+            did_work = process_one_dataset() or process_one_revision()
             if once:
                 break
             if not did_work:

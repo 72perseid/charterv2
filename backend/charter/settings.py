@@ -63,6 +63,11 @@ RATE_REVISIONS_PER_HOUR = 60
 # ALLOW_PRIVATE_ENDPOINTS=true and accepts that.
 ALLOW_PRIVATE_ENDPOINTS = env_bool("ALLOW_PRIVATE_ENDPOINTS", False)
 PROVIDER_TIMEOUT_SECONDS = 90
+GENERATION_MAX_TOKENS = 8000  # room for reasoning models' hidden tokens plus the spec
+GENERATION_SEED = 1
+PROMPT_VERSION = "p2026-09-a"
+PROMPTS_DIR = BASE_DIR / "prompts"
+APP_VERSION = os.environ.get("APP_VERSION", "dev")  # git sha baked in at image build
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -74,6 +79,7 @@ INSTALLED_APPS = [
     "accounts",
     "datasets",
     "generation",
+    "charts",
 ]
 
 MIDDLEWARE = [
