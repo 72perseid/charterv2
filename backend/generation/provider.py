@@ -7,6 +7,7 @@ including the planned in-country host, is the base URL.
 from __future__ import annotations
 
 import ipaddress
+import re
 import socket
 import time
 from dataclasses import dataclass, field
@@ -27,6 +28,28 @@ class ProviderResult:
     usage: dict | None
     duration_ms: int
     raw: dict = field(repr=False)
+    # Parameters the endpoint rejected and we dropped or renamed before it answered,
+    # e.g. "max_tokens -> max_completion_tokens" or "temperature dropped".
+    adjustments: list[str] = field(default_factory=list)
+    request_body: dict = field(default_factory=dict, repr=False)
+
+
+# Providers differ in which optional parameters they accept. OpenAI's newer
+# models want max_completion_tokens instead of max_tokens and refuse a
+# non-default temperature; others reject response_format or seed. Rather than
+# keep a table of who accepts what, read the 400 and adapt, at most a few times.
+UNSUPPORTED = re.compile(r"[Uu]nsupported (?:parameter|value)[^'\"]*['\"]([a-z_]+)['\"]")
+UNKNOWN = re.compile(r"[Uu]nknown (?:parameter|field|argument)[^'\"]*['\"]([a-z_]+)['\"]")
+RENAMES = {"max_tokens": "max_completion_tokens"}
+MAX_ADJUSTMENTS = 3
+
+
+def _rejected_parameter(detail: str, body: dict) -> str | None:
+    for pattern in (UNSUPPORTED, UNKNOWN):
+        match = pattern.search(detail)
+        if match and match.group(1) in body and match.group(1) not in {"model", "messages"}:
+            return match.group(1)
+    return None
 
 
 def normalise_base_url(base_url: str) -> str:
@@ -83,31 +106,32 @@ def chat_completion(
         body["seed"] = seed
 
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    adjustments: list[str] = []
     started = time.monotonic()
-    try:
-        response = httpx.post(
-            f"{base_url}/chat/completions",
-            json=body,
-            headers=headers,
-            timeout=timeout or settings.PROVIDER_TIMEOUT_SECONDS,
-        )
-    except httpx.TimeoutException as exc:
-        raise ProviderError("The endpoint did not answer in time.") from exc
-    except httpx.HTTPError as exc:
-        raise ProviderError(
-            f"Could not connect to the endpoint: {exc.__class__.__name__}."
-        ) from exc
+    while True:
+        response = _post(f"{base_url}/chat/completions", body, headers, timeout)
+        if response.status_code == 400 and len(adjustments) < MAX_ADJUSTMENTS:
+            detail = _error_detail(response)
+            name = _rejected_parameter(detail, body)
+            if name is not None:
+                value = body.pop(name)
+                if name in RENAMES and RENAMES[name] not in body:
+                    body[RENAMES[name]] = value
+                    adjustments.append(f"{name} -> {RENAMES[name]}")
+                else:
+                    adjustments.append(f"{name} dropped")
+                continue
+        break
     duration_ms = int((time.monotonic() - started) * 1000)
 
-    if response.status_code == 401 or response.status_code == 403:
+    if response.status_code in (401, 403):
         raise ProviderError(f"Endpoint returned {response.status_code}: check your API key.")
     if response.status_code == 404:
         raise ProviderError("Endpoint returned 404: check the base URL and the model name.")
     if response.status_code == 429:
         raise ProviderError("Endpoint returned 429: rate limited or out of credit.")
     if response.status_code >= 400:
-        detail = _error_detail(response)
-        raise ProviderError(f"Endpoint returned {response.status_code}: {detail}")
+        raise ProviderError(f"Endpoint returned {response.status_code}: {_error_detail(response)}")
 
     try:
         data = response.json()
@@ -123,7 +147,22 @@ def chat_completion(
         usage=data.get("usage") if isinstance(data.get("usage"), dict) else None,
         duration_ms=duration_ms,
         raw=data,
+        adjustments=adjustments,
+        request_body=body,
     )
+
+
+def _post(url: str, body: dict, headers: dict, timeout: float | None) -> httpx.Response:
+    try:
+        return httpx.post(
+            url, json=body, headers=headers, timeout=timeout or settings.PROVIDER_TIMEOUT_SECONDS
+        )
+    except httpx.TimeoutException as exc:
+        raise ProviderError("The endpoint did not answer in time.") from exc
+    except httpx.HTTPError as exc:
+        raise ProviderError(
+            f"Could not connect to the endpoint: {exc.__class__.__name__}."
+        ) from exc
 
 
 def _error_detail(response: httpx.Response) -> str:

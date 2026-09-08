@@ -156,9 +156,12 @@ def test_model_config(request: HttpRequest):
         return 200, {"ok": False, "message": str(exc)}
     except ValueError as exc:
         return 200, {"ok": False, "message": str(exc)}
+    message = f"Connected. The model answered: {result.text.strip()[:40]!r}"
+    if result.adjustments:
+        message += " Adjusted for this endpoint: " + ", ".join(result.adjustments) + "."
     return 200, {
         "ok": True,
-        "message": f"Connected. The model answered: {result.text.strip()[:40]!r}",
+        "message": message,
         "model": result.model,
         "duration_ms": result.duration_ms,
     }

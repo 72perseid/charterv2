@@ -7,6 +7,8 @@ the API key so one server covers the happy path and the failure paths:
   slow-key      -> sleeps past the caller's timeout
   garbage-key   -> 200 with a non-JSON body
   text-key      -> 200 whose message content is plain prose, not JSON
+  strict-key    -> 400 on max_tokens (wants max_completion_tokens) and on temperature != 1,
+                   like OpenAI's reasoning models; 200 once both are fixed
 
 GET /v1/models returns three canned ids (401 for bad-key).
 """
@@ -67,6 +69,31 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(401, {"error": {"message": "invalid api key"}})
         if key == "slow-key":
             time.sleep(3)
+        if key == "strict-key":
+            if "max_tokens" in body:
+                return self._send(
+                    400,
+                    {
+                        "error": {
+                            "message": "Unsupported parameter: 'max_tokens' is not supported "
+                            "with this model. Use 'max_completion_tokens' instead.",
+                            "type": "invalid_request_error",
+                            "param": "max_tokens",
+                        }
+                    },
+                )
+            if body.get("temperature", 1) != 1:
+                return self._send(
+                    400,
+                    {
+                        "error": {
+                            "message": "Unsupported value: 'temperature' does not support 0.0 "
+                            "with this model. Only the default (1) value is supported.",
+                            "type": "invalid_request_error",
+                            "param": "temperature",
+                        }
+                    },
+                )
         if key == "garbage-key":
             self.send_response(200)
             self.send_header("Content-Type", "text/html")
@@ -75,7 +102,7 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(b"<html>oops</html>")
             return None
         content = "Sure, here is prose." if key == "text-key" else json.dumps(CANNED_SPEC)
-        if body.get("max_tokens") == 5:
+        if body.get("max_tokens") == 5 or body.get("max_completion_tokens") == 5:
             content = "ok"  # the connection test asks for one word
         return self._send(
             200,

@@ -90,3 +90,22 @@ def test_list_models_sorted_case_insensitively(stub):
 def test_list_models_bad_key(stub):
     with pytest.raises(ProviderError, match="check your API key"):
         list_models(base_url=stub.base_url, api_key="bad-key")
+
+
+def test_rejected_parameters_are_renamed_or_dropped_and_recorded(stub):
+    result = call(stub, "strict-key", max_tokens=50)
+    assert result.adjustments == ["max_tokens -> max_completion_tokens", "temperature dropped"]
+    assert result.request_body["max_completion_tokens"] == 50
+    assert "max_tokens" not in result.request_body
+    assert "temperature" not in result.request_body
+    # Three requests: the two rejections and the one that succeeded.
+    assert [r["body"].get("max_tokens") for r in stub.requests[-3:]] == [50, None, None]
+
+
+def test_unrelated_400_is_not_retried(stub):
+    stub.requests.clear()
+    with pytest.raises(ProviderError, match="404"):
+        chat_completion(
+            base_url=stub.base_url + "/nope", api_key="good-key", model="m", messages=MESSAGES
+        )
+    assert len(stub.requests) == 1
