@@ -105,7 +105,7 @@ def chat_completion(
     if seed is not None:
         body["seed"] = seed
 
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    headers = _auth_headers(api_key) | {"Content-Type": "application/json"}
     adjustments: list[str] = []
     started = time.monotonic()
     while True:
@@ -158,6 +158,12 @@ def chat_completion(
     )
 
 
+def _auth_headers(api_key: str) -> dict:
+    """Local servers (Ollama, vLLM without --api-key) need no key; sending
+    `Bearer ` with nothing after it makes some of them answer 401, so send no header."""
+    return {"Authorization": f"Bearer {api_key}"} if api_key else {}
+
+
 def _post(url: str, body: dict, headers: dict, timeout: float | None) -> httpx.Response:
     try:
         return httpx.post(
@@ -196,7 +202,7 @@ def list_models(*, base_url: str, api_key: str, timeout: float | None = None) ->
     try:
         response = httpx.get(
             f"{base_url}/models",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers=_auth_headers(api_key),
             timeout=timeout or 30,
         )
     except httpx.TimeoutException as exc:

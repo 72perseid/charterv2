@@ -47,6 +47,8 @@ class ModelConfigOut(Schema):
     temperature: float
     has_key: bool
     key_hint: str
+    # True when the operator set ALLOW_PRIVATE_ENDPOINTS: a local model needs no key.
+    key_optional: bool
     input_price_per_million: float | None
     output_price_per_million: float | None
     updated_at: datetime | None

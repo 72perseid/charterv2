@@ -1119,6 +1119,10 @@
       "title": "Key Hint",
       "type": "string"
      },
+     "key_optional": {
+      "title": "Key Optional",
+      "type": "boolean"
+     },
      "input_price_per_million": {
       "anyOf": [
        {
@@ -1160,6 +1164,7 @@
      "temperature",
      "has_key",
      "key_hint",
+     "key_optional",
      "input_price_per_million",
      "output_price_per_million",
      "updated_at"

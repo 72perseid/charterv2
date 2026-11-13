@@ -32,6 +32,11 @@ services:
     volumes:
       - data:/data
       - static:/app/static:ro
+    # Lets a base URL of http://host.docker.internal:<port>/v1 reach a model
+    # server on the host (Ollama, vLLM). Docker Desktop provides the name
+    # itself; on Linux this line is what makes it resolve. Harmless otherwise.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,6 +54,8 @@ services:
       DATA_DIR: /data
     volumes:
       - data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy

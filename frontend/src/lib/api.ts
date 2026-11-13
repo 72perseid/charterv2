@@ -158,6 +158,7 @@ export type ModelConfig = {
   temperature: number;
   has_key: boolean;
   key_hint: string;
+  key_optional: boolean; // this server allows local endpoints, which need no key
   input_price_per_million: number | null;
   output_price_per_million: number | null;
   updated_at: string | null;

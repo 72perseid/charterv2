@@ -44,6 +44,7 @@ def test_empty_config(user_client: CsrfClient):
         "temperature": 0.0,
         "has_key": False,
         "key_hint": "",
+        "key_optional": True,
         "input_price_per_million": None,
         "output_price_per_million": None,
         "updated_at": None,
@@ -73,10 +74,31 @@ def test_save_encrypts_key_and_never_returns_it(user_client: CsrfClient, stub):
     assert again.json()["model"] == "m2" and again.json()["key_hint"] == "…3456"
 
 
-def test_first_save_needs_a_key(user_client: CsrfClient, stub):
-    response = put(user_client, base_url=stub.base_url, model="m", api_key="")
+def test_first_save_needs_a_key_unless_local_endpoints_allowed(
+    user_client: CsrfClient, stub, settings
+):
+    settings.ALLOW_PRIVATE_ENDPOINTS = False
+    assert user_client.get("/api/me/model-config").json()["key_optional"] is False
+    response = put(user_client, base_url="https://api.example.com/v1", model="m", api_key="")
     assert response.status_code == 400
     assert "API key is required" in response.json()["detail"]
+
+    settings.ALLOW_PRIVATE_ENDPOINTS = True
+    response = put(user_client, base_url=stub.base_url, model="local", api_key="")
+    assert response.status_code == 200, response.content
+    assert response.json()["has_key"] is False and response.json()["key_hint"] == ""
+    assert decrypt(ModelConfig.objects.get().api_key_encrypted) == ""
+
+    # A keyless config still tests and lists models; no Authorization header is sent.
+    body = user_client.post("/api/me/model-config/test").json()
+    assert body["ok"] is True, body
+    assert "Authorization" not in stub.requests[-1]["headers"]
+    listed = user_client.post(
+        "/api/me/model-config/models",
+        json.dumps({"base_url": stub.base_url}),
+        content_type="application/json",
+    )
+    assert listed.status_code == 200 and len(listed.json()["models"]) == 3
 
 
 def test_bad_url_rejected(user_client: CsrfClient):
@@ -99,13 +121,17 @@ def test_connection_test_reports_outcome(user_client: CsrfClient, stub):
     assert "check your API key" in body["message"]
 
 
-def test_list_models_endpoint(user_client: CsrfClient, stub):
+def test_list_models_endpoint(user_client: CsrfClient, stub, settings):
     def ask(**fields):
         return user_client.post(
             "/api/me/model-config/models", json.dumps(fields), content_type="application/json"
         )
 
-    assert ask(base_url=stub.base_url).status_code == 400  # no key anywhere yet
+    # No key anywhere yet: allowed only because this server permits local endpoints.
+    assert ask(base_url=stub.base_url).status_code == 200
+    settings.ALLOW_PRIVATE_ENDPOINTS = False
+    assert ask(base_url="https://api.example.com/v1").status_code == 400
+    settings.ALLOW_PRIVATE_ENDPOINTS = True
     ok = ask(base_url=stub.base_url, api_key="good-key")
     assert ok.status_code == 200
     assert ok.json()["models"] == ["Stub-Embed", "stub-large", "stub-small"]

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -84,16 +85,19 @@ def me(request: HttpRequest):
 
 TEST_MAX_TOKENS = 1024
 
-EMPTY_CONFIG = {
-    "base_url": "",
-    "model": "",
-    "temperature": 0.0,
-    "has_key": False,
-    "key_hint": "",
-    "input_price_per_million": None,
-    "output_price_per_million": None,
-    "updated_at": None,
-}
+
+def empty_config() -> dict:
+    return {
+        "base_url": "",
+        "model": "",
+        "temperature": 0.0,
+        "has_key": False,
+        "key_hint": "",
+        "key_optional": settings.ALLOW_PRIVATE_ENDPOINTS,
+        "input_price_per_million": None,
+        "output_price_per_million": None,
+        "updated_at": None,
+    }
 
 
 def config_out(config: ModelConfig) -> dict:
@@ -102,8 +106,9 @@ def config_out(config: ModelConfig) -> dict:
         "base_url": config.base_url,
         "model": config.model,
         "temperature": config.temperature,
-        "has_key": True,
-        "key_hint": ("…" + key[-4:]) if len(key) >= 8 else "…",
+        "has_key": bool(key),
+        "key_hint": ("…" + key[-4:]) if len(key) >= 8 else ("…" if key else ""),
+        "key_optional": settings.ALLOW_PRIVATE_ENDPOINTS,
         "input_price_per_million": config.input_price_per_million,
         "output_price_per_million": config.output_price_per_million,
         "updated_at": config.updated_at,
@@ -113,7 +118,7 @@ def config_out(config: ModelConfig) -> dict:
 @me_router.get("/model-config", response=ModelConfigOut)
 def get_model_config(request: HttpRequest):
     config = ModelConfig.objects.filter(user=request.user).first()
-    return config_out(config) if config else EMPTY_CONFIG
+    return config_out(config) if config else empty_config()
 
 
 @me_router.put("/model-config", response={200: ModelConfigOut, 400: Detail})
@@ -124,12 +129,14 @@ def put_model_config(request: HttpRequest, data: ModelConfigIn):
         return 400, {"detail": str(exc)}
     config = ModelConfig.objects.filter(user=request.user).first()
     api_key = data.api_key.strip()
-    if not api_key:
-        if config is None:
-            return 400, {"detail": "An API key is required."}
-        encrypted = bytes(config.api_key_encrypted)
-    else:
+    if api_key:
         encrypted = encrypt(api_key)
+    elif config is not None:
+        encrypted = bytes(config.api_key_encrypted)  # blank keeps the stored key
+    elif settings.ALLOW_PRIVATE_ENDPOINTS:
+        encrypted = encrypt("")  # a local model that checks no key
+    else:
+        return 400, {"detail": "An API key is required."}
     config, _ = ModelConfig.objects.update_or_create(
         user=request.user,
         defaults={
@@ -184,9 +191,10 @@ def list_provider_models(request: HttpRequest, data: ModelListIn):
     api_key = data.api_key.strip()
     if not api_key:
         config = ModelConfig.objects.filter(user=request.user).first()
-        if config is None:
+        if config is not None:
+            api_key = decrypt(config.api_key_encrypted)
+        elif not settings.ALLOW_PRIVATE_ENDPOINTS:
             return 400, {"detail": "Enter an API key first."}
-        api_key = decrypt(config.api_key_encrypted)
     try:
         listed = list_models(base_url=data.base_url, api_key=api_key)
         return 200, {"models": listed.ids, "pricing": listed.pricing}

@@ -35,6 +35,12 @@ def test_happy_path_sends_bearer_and_returns_text(stub):
     assert sent["body"]["seed"] == 7 and sent["body"]["max_tokens"] == 50
 
 
+def test_blank_key_sends_no_authorization_header(stub):
+    result = call(stub, "")
+    assert result.model == "m"
+    assert "Authorization" not in stub.requests[-1]["headers"]
+
+
 def test_401_becomes_actionable_message(stub):
     with pytest.raises(ProviderError, match="check your API key"):
         call(stub, "bad-key")

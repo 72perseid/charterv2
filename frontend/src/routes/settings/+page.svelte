@@ -30,7 +30,11 @@
   let loadingModels = $state(false);
   let modelsFor = $state(''); // base URL the current list belongs to
 
-  const canLoad = $derived(base_url.trim().length > 8 && (api_key !== '' || data.config.has_key));
+  const keyOptional = $derived(data.config.key_optional);
+  const saved = $derived(data.config.updated_at !== null);
+  const canLoad = $derived(
+    base_url.trim().length > 8 && (api_key !== '' || data.config.has_key || keyOptional)
+  );
   const listed = $derived(models.length > 0 && modelsFor === base_url.trim());
   const modelInList = $derived(listed && models.includes(model));
 
@@ -140,13 +144,17 @@
         type="password"
         autocomplete="off"
         bind:value={api_key}
-        required={!data.config.has_key}
+        required={!data.config.has_key && !keyOptional}
         onblur={maybeLoad}
       />
       <small>
-        {data.config.has_key
-          ? s.model.apiKeyKeep.replace('{hint}', data.config.key_hint)
-          : s.model.apiKeyNew}
+        {#if data.config.has_key}
+          {s.model.apiKeyKeep.replace('{hint}', data.config.key_hint)}
+        {:else if keyOptional}
+          {s.model.apiKeyOptional}
+        {:else}
+          {s.model.apiKeyNew}
+        {/if}
       </small>
     </div>
     <div class="field">
@@ -175,7 +183,7 @@
         {:else if canLoad}
           {s.model.modelHint}
         {:else}
-          {s.model.modelsNeedKey}
+          {keyOptional ? s.model.modelsNeedUrl : s.model.modelsNeedKey}
         {/if}
       </small>
     </div>
@@ -204,7 +212,7 @@
         type="button"
         class="quiet"
         onclick={test}
-        disabled={testing || !data.config.has_key || dirty}
+        disabled={testing || !saved || dirty}
         title={dirty ? s.model.unsaved : ''}
       >
         {testing ? s.model.testing : s.model.test}

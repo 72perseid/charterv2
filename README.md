@@ -30,6 +30,16 @@ Create an admin user for `/admin` with:
 docker compose -f deploy/compose.yml exec api python manage.py createsuperuser
 ```
 
+### Running with a local model
+
+Chart-er talks to any OpenAI-compatible endpoint, and a model server on your own machine is one. Ollama, vLLM, llama.cpp's server, and LM Studio all expose that API. Nothing then leaves the computer at all.
+
+1. Set `ALLOW_PRIVATE_ENDPOINTS=true` in `deploy/.env` and start the stack. By default the server refuses plain `http://` and any address on a private network, so one user cannot make it call other services on the box. The flag lifts that for every user, so set it only on a machine whose users you trust: a laptop, or a lab server behind a login you control.
+2. Start the model server on the host as usual, for example `ollama serve` with a model pulled, or `vllm serve <model>`.
+3. In Settings, enter the base URL as `http://host.docker.internal:11434/v1` for Ollama, or the server's port in place of 11434. Inside a container `localhost` is the container itself, so the host has to be named; the compose file maps `host.docker.internal` to the host on Linux as well as Docker Desktop. Leave the API key blank when the server checks none. The model list loads from the server, pick one, save, and test the connection.
+
+A model that returns a first `done` revision with a sensible chart is good enough. Small local models are more likely to answer with text around the JSON or to drift from the column names; the validation and the one retry in the worker cover the common cases, and a failed revision tells you why. Prices stay blank, so the cost column reads as unknown rather than zero.
+
 ## Using it
 
 1. **Settings.** Enter an OpenAI-compatible base URL and your API key; the model list loads from the provider, and prices fill in when the provider publishes them. Test the connection.
@@ -81,7 +91,7 @@ Continuous integration runs the same on every push: ruff, pytest against Postgre
 
 ## Limits
 
-Per user: 20 uploads and 60 revisions per hour. No email verification until an SMTP relay is configured (`EMAIL_URL`); registration is otherwise open. The server refuses `http://` and private-network model endpoints unless `ALLOW_PRIVATE_ENDPOINTS=true`.
+Per user: 20 uploads and 60 revisions per hour. No email verification until an SMTP relay is configured (`EMAIL_URL`); registration is otherwise open. The server refuses `http://` and private-network model endpoints unless `ALLOW_PRIVATE_ENDPOINTS=true` (see *Running with a local model*).
 
 ## Status
 
