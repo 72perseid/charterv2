@@ -1,6 +1,13 @@
 import pandas as pd
+import pytest
 
-from datasets.profile import build_profile, profile_for_model, rows_as_records, sample_rows
+from datasets.profile import (
+    build_profile,
+    period_orders,
+    profile_for_model,
+    rows_as_records,
+    sample_rows,
+)
 
 
 def frame_and_options():
@@ -96,3 +103,44 @@ def test_identifier_columns_have_no_top_values():
     column = build_profile(frame, options)["columns"][0]
     assert "top_values" not in column
     assert column["distinct_count"] == 3 and column["max_length"] == 4
+
+
+def period_frame():
+    frame = pd.DataFrame(
+        {"donem": pd.Series(["Roma", "Helenistik", "Roma", "Karışık", None], dtype="string")}
+    )
+    return frame, {"types": {"donem": "period"}, "original_columns": ["Dönem"]}
+
+
+def test_period_column_profile():
+    frame, options = period_frame()
+    column = build_profile(frame, options)["columns"][0]
+    assert column["type"] == "period"
+    assert column["order"] == ["Helenistik", "Roma", "Karışık"]
+    assert column["unplaced"] == ["Karışık"]
+    assert column["order_source"] == "detected"
+    assert column["region"] == "Turkey" and column["periodo_snapshot"]
+    # Each placed value says which PeriodO definition decided its place.
+    assert [m["value"] for m in column["matches"]] == ["Helenistik", "Roma"]
+    assert all(m["via"] == "translation" and m["id"] and m["source"] for m in column["matches"])
+    assert column["top_values"][0] == {"value": "Roma", "count": 2}
+    assert period_orders({"columns": [column]}) == {"donem": ["Helenistik", "Roma", "Karışık"]}
+
+
+def test_period_order_given_by_the_user():
+    frame, options = period_frame()
+    options["period_orders"] = {"donem": ["Karışık", "Roma"]}
+    column = build_profile(frame, options)["columns"][0]
+    assert column["order"] == ["Karışık", "Roma", "Helenistik"]
+    assert column["unplaced"] == ["Helenistik"]
+    assert column["order_source"] == "user"
+
+
+@pytest.mark.parametrize("level", ["minimal", "statistics", "sample"])
+def test_period_order_never_reaches_the_model(level):
+    frame, options = period_frame()
+    profile = build_profile(frame, options)
+    column = profile_for_model(profile, level, frame)["columns"][0]
+    assert column["type"] == "period"
+    hidden = {"order", "unplaced", "order_source", "matches", "region", "periodo_snapshot"}
+    assert not hidden & set(column)

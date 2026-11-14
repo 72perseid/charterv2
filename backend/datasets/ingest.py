@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from datasets.chronology import looks_chronological
+
 TEXT_KINDS = {"csv", "tsv", "txt"}
 EXCEL_KINDS = {"xlsx"}
 ENCODINGS = ("utf-8", "cp1254", "latin-1")  # utf-8-sig is detected by its BOM first
@@ -238,7 +240,8 @@ def _normalise_number_strings(values: pd.Series, decimal: str) -> pd.Series:
 
 def coerce_series(series: pd.Series, decimal: str = ".") -> tuple[pd.Series, str]:
     """Return the series in its canonical dtype and the profile type name:
-    integer | number | date | boolean | string."""
+    integer | number | date | boolean | string. A string column may still be
+    promoted to 'period' by `mark_periods`; its dtype stays string."""
     non_null = series.dropna()
     if non_null.empty:
         return series.astype("string"), "string"
@@ -280,10 +283,12 @@ def coerce_series(series: pd.Series, decimal: str = ".") -> tuple[pd.Series, str
             full.loc[parsed.index] = parsed.values
             return full, "date"
 
+    # Text is trimmed, non-breaking spaces included: "LN" and "LN " are one value,
+    # and a cell of spaces is empty.
     out = (
         series.astype(object)
         .where(series.notna(), None)
-        .map(lambda v: None if v is None else str(v))
+        .map(lambda v: None if v is None else (str(v).replace("\xa0", " ").strip() or None))
     )
     return out.astype("string"), "string"
 
@@ -294,6 +299,44 @@ def coerce_frame(frame: pd.DataFrame, decimal: str = ".") -> tuple[pd.DataFrame,
     for column in frame.columns:
         out[column], types[column] = coerce_series(frame[column], decimal)
     return out, types
+
+
+def date_links(types: dict[str, str], wanted: dict) -> dict[str, dict]:
+    """The user's "this column is dated by those columns" links that still hold
+    after this read: the dated column is text, the start (and end) are numbers."""
+    links: dict[str, dict] = {}
+    for column, link in wanted.items():
+        start, end = link.get("start"), link.get("end") or None
+        numeric = all(types.get(c) in {"integer", "number"} for c in (start, end) if c)
+        if types.get(column) in {"string", "period"} and start and numeric:
+            links[column] = {"start": start, "end": end, "bc": bool(link.get("bc"))}
+    return links
+
+
+def mark_periods(
+    frame: pd.DataFrame, types: dict[str, str], wanted: dict, dated: dict | None = None
+) -> tuple[dict[str, str], dict[str, list[str]]]:
+    """Text columns that hold archaeological periods become type 'period'
+    (SPEC §6.1 step 6). `wanted` is the user's say per column: a list is their
+    own order, True forces the type, False forbids it, absent means detect.
+    A column the user dated from other columns (`dated`) is a period column.
+    Returns the types and the user-given orders that were applied."""
+    types = dict(types)
+    orders: dict[str, list[str]] = {}
+    for column, kind in types.items():
+        if kind != "string":
+            continue
+        choice = wanted.get(column)
+        if column in (dated or {}) and not isinstance(choice, list):
+            choice = True
+        if choice is False:
+            continue
+        if isinstance(choice, list):
+            types[column] = "period"
+            orders[column] = [str(v) for v in choice]
+        elif choice is True or looks_chronological(frame[column].dropna().unique(), column):
+            types[column] = "period"
+    return types, orders
 
 
 def enforce_limits(frame: pd.DataFrame, limits: Limits) -> None:
@@ -316,6 +359,11 @@ def parse_file(path: Path, filename: str, overrides: dict, limits: Limits) -> Pa
     frame, originals = normalise_columns(parsed.frame)
     enforce_limits(frame, limits)
     frame, types = coerce_frame(frame, parsed.parse_options.get("decimal", "."))
+    links = date_links(types, overrides.get("period_dates") or {})
+    types, period_orders = mark_periods(frame, types, overrides.get("periods") or {}, links)
+    parsed.parse_options["period_dates"] = links
     parsed.parse_options["original_columns"] = originals
     parsed.parse_options["types"] = types
+    parsed.parse_options["period_orders"] = period_orders
+    parsed.parse_options["period_mappings"] = overrides.get("period_mappings") or {}
     return Parsed(frame, parsed.parse_options)

@@ -67,6 +67,59 @@ export const tr: Strings = {
         nulls: 'Boş',
         distinct: 'Farklı',
         summary: 'Özet'
+      },
+      period: {
+        unplaced: 'yerleştirilemedi, sonda sıralanır',
+        yours: 'sizin sıranız',
+        edit: 'Sıra ve kaynaklar',
+        treat: 'Dönem olarak işle',
+        dates: 'Tarihleri sütunlardan al',
+        datesTitle: 'Değerleri tarihlenecek sütun:',
+        datesHint:
+          'Bu veri setinde her satırın başlangıç ve bitiş yılını tutan sütunları seçin. Her değer, satırlarındaki en erken başlangıca ve en geç bitişe göre yerleştirilir ve bu tarihler PeriodO\'dan önce gelir. Satırlarında tarih olmayan değerler yine PeriodO\'da aranır.',
+        datesStart: 'Başlangıç yılı sütunu',
+        datesEnd: 'Bitiş yılı sütunu',
+        datesNone: '(yok)',
+        datesBc: 'Yıllar MÖ sayılıyor (1500, MÖ 1500 demek)',
+        datesSave: 'Bu tarihleri kullan',
+        datesRemove: 'Bağlantıyı kaldır',
+        datedBy: 'Tarihlendiren sütunlar',
+        varies: 'tarihler satırdan satıra değişiyor; en geniş aralık kullanıldı',
+        placedBy: 'Her değer nasıl yerleştirildi',
+        datedFor: 'Tarihlendirme bölgesi',
+        snapshot: 'PeriodO kopyası',
+        bc: 'MÖ',
+        ad: 'MS',
+        via: {
+          periodo: 'PeriodO',
+          abbreviation: 'PeriodO, kısaltma açıldı',
+          translation: 'PeriodO, çevrildi',
+          derived: 'bir PeriodO döneminin parçası',
+          year: 'etiketteki tarih',
+          model: 'modeliniz',
+          user: 'sizin anlamınız',
+          data: 'bu veri setindeki tarihler'
+        },
+        means: 'Anlamı',
+        meansPlaceholder: 'örn. Late Neolithic ya da MÖ 5300-4500',
+        meansHint:
+          'Bir değerin ne anlama geldiğini yazın: yaygın yazılışıyla bir dönem adı ya da bir tarih. Diğer etiketler gibi PeriodO\'da aranır ve bulunan eşleşmenin yerine geçer.',
+        notRead: 'okunamadı',
+        notPlaced: 'yerleştirilemedi',
+        saveMappings: 'Anlamları kaydet',
+        typeOrder: 'Ya da bütün sırayı elle yazın',
+        modelEstimate: 'tahmin, PeriodO tanımı yok',
+        ask: 'Yerleştirilemeyen değerleri modele sor',
+        askConfirm: 'Bu sütunun değerleri modelinize gönderilsin mi?',
+        askHint:
+          'Yalnızca bu sütunun farklı değerlerini Ayarlar\'daki model uç noktasına gönderir. Bu düğmeye basmadıkça hiçbir şey gönderilmez.',
+        askFailed: 'Modele sorulamadı',
+        editorLabel: 'Kronolojik sıra:',
+        editorHint: 'Her satıra bir değer, en eski en üstte. Yazmadığınız değerler sonda sıralanır.',
+        save: 'Sırayı kaydet',
+        detect: 'Yeniden algıla',
+        notPeriod: 'Dönem değil',
+        cancel: 'Kapat'
       }
     },
     privacy: {
@@ -83,7 +136,14 @@ export const tr: Strings = {
       }
     }
   },
-  types: { integer: 'tam sayı', number: 'sayı', date: 'tarih', boolean: 'mantıksal', string: 'metin' },
+  types: {
+    integer: 'tam sayı',
+    number: 'sayı',
+    date: 'tarih',
+    boolean: 'mantıksal',
+    string: 'metin',
+    period: 'dönem'
+  },
   charts: {
     title: 'Grafikler',
     empty: 'Henüz grafik yok. Bir veri seti açın ve istediğiniz grafiği tarif edin.',

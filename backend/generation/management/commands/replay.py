@@ -15,6 +15,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 
+from datasets.profile import period_orders
 from generation.provider import ProviderError, chat_completion
 from generation.validate import SpecError, validate_spec
 
@@ -75,6 +76,7 @@ class Command(BaseCommand):
                 x_field=chosen["x_field"],
                 y_field=chosen["y_field"],
                 color_field=chosen.get("color_field"),
+                period_orders=period_orders(data["dataset"]["profile"]),
             )
         except SpecError as exc:
             raise CommandError(f"Replayed answer failed validation: {exc}") from exc

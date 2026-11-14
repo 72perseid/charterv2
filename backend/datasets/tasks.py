@@ -13,10 +13,12 @@ from django.conf import settings
 from django.db import connection, transaction
 from django.utils import timezone
 
+from datasets.chronology import resolve
 from datasets.ingest import IngestError, Limits, parse_file
 from datasets.models import Dataset
-from datasets.profile import build_profile
+from datasets.profile import build_profile, period_spans
 from datasets.storage import PARSED_NAME, dataset_dir
+from generation.periods import ask
 
 log = logging.getLogger("charter.worker")
 
@@ -44,6 +46,25 @@ def ingest_dataset(dataset: Dataset) -> None:
     overrides = dict(dataset.parse_options.get("overrides", {}))
     limits = Limits(settings.UPLOAD_MAX_ROWS, settings.UPLOAD_MAX_COLUMNS)
     parsed = parse_file(Path(dataset.original_path), dataset.original_filename, overrides, limits)
+
+    # Answers the user's model gave about period labels are kept across re-reads;
+    # new questions are asked now, once, and then forgotten as questions.
+    answers = dict(dataset.parse_options.get("period_answers") or {})
+    requests = dict(dataset.parse_options.get("period_requests") or {})
+    for column in overrides.pop("period_questions", []):
+        if parsed.parse_options["types"].get(column) != "period":
+            continue
+        known = answers.get(column, {})
+        mapped = parsed.parse_options["period_mappings"].get(column)
+        link = parsed.parse_options["period_dates"].get(column)
+        spans = period_spans(parsed.frame, column, link) if link else None
+        resolution = resolve(
+            parsed.frame[column].dropna().astype(str).unique(), known, mapped, spans
+        )
+        new, requests[column] = ask(dataset.user_id, column, resolution)
+        answers[column] = {**known, **new}
+    parsed.parse_options["period_answers"] = answers
+    parsed.parse_options["period_requests"] = requests
 
     directory = dataset_dir(dataset.user_id, dataset.pk)
     directory.mkdir(parents=True, exist_ok=True)

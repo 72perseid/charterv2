@@ -18,6 +18,11 @@ from jsonschema.exceptions import best_match
 SCHEMA_URL = "https://vega.github.io/schema/vega-lite/v6.json"
 FORBIDDEN_TOP = ("layer", "concat", "hconcat", "vconcat", "repeat", "facet", "spec")
 CHANNEL_FALLBACK = {"x": "x_field", "y": "y_field", "color": "color_field"}
+# Channels whose scale has an order worth fixing for a period column.
+ORDERED_CHANNELS = (
+    "x", "y", "xOffset", "yOffset", "color", "fill", "stroke", "opacity", "size",
+    "shape", "strokeDash", "row", "column",
+)  # fmt: skip
 FENCE = re.compile(r"^\s*```(?:json)?\s*|\s*```\s*$", re.IGNORECASE)
 
 
@@ -59,6 +64,38 @@ def parse_json(text: str) -> dict:
     return data
 
 
+def order_periods(encoding: dict, period_orders: dict[str, list[str]]) -> list[str]:
+    """Period columns are drawn oldest first (SPEC §6.3 step 4). The order comes
+    from the dataset profile, not from the model, so it is the same on every
+    run and at every privacy level. A sort the request asked for by another
+    measure ("-y", a field, an encoding) is left alone; "descending" means
+    newest first."""
+    notes: list[str] = []
+    for channel in ORDERED_CHANNELS:
+        definition = encoding.get(channel)
+        if not isinstance(definition, dict):
+            continue
+        order = period_orders.get(definition.get("field"))
+        if not order or "aggregate" in definition or "bin" in definition:
+            continue
+        sort = definition.get("sort")
+        if "sort" in definition and not (
+            isinstance(sort, list) or sort in ("ascending", "descending")
+        ):
+            continue
+        # A revision copies its parent's sort list, so a reversed list is "descending" too.
+        newest_first = sort == "descending" or sort == list(reversed(order)) != list(order)
+        wanted = list(reversed(order)) if newest_first else list(order)
+        if sort == wanted and definition.get("type") == "ordinal":
+            continue
+        definition["sort"] = wanted
+        definition["type"] = "ordinal"
+        definition.pop("timeUnit", None)
+        direction = "newest first" if newest_first else "oldest first"
+        notes.append(f'{channel}: "{definition["field"]}" put in chronological order, {direction}')
+    return notes
+
+
 def validate_spec(
     text: str,
     *,
@@ -66,6 +103,7 @@ def validate_spec(
     x_field: str,
     y_field: str,
     color_field: str | None,
+    period_orders: dict[str, list[str]] | None = None,
 ) -> Validated:
     spec = parse_json(text)
     corrections: list[str] = []
@@ -111,6 +149,8 @@ def validate_spec(
             corrections.append(f'{channel}: unknown field "{name}", channel removed')
     if not spec["encoding"]:
         raise SpecError("No encoding channel names a field from the profile.")
+
+    corrections += order_periods(spec["encoding"], period_orders or {})
 
     error = best_match(schema_validator().iter_errors(spec))
     if error is not None:

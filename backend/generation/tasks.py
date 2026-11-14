@@ -17,7 +17,7 @@ from django.utils import timezone
 from accounts.crypto import decrypt
 from accounts.models import ModelConfig
 from charts.models import ChartRevision
-from datasets.profile import profile_for_model
+from datasets.profile import period_orders, profile_for_model
 from datasets.tasks import load_rows
 from generation.prompt import build_messages
 from generation.provider import ProviderError, ProviderResult, chat_completion
@@ -131,6 +131,7 @@ def generate(revision: ChartRevision) -> None:
                 x_field=revision.x_field,
                 y_field=revision.y_field,
                 color_field=revision.color_field,
+                period_orders=period_orders(dataset.profile),
             )
         except SpecError as exc:
             retry_error = str(exc)

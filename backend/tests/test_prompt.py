@@ -12,7 +12,7 @@ SNAPSHOTS = Path(__file__).parent / "snapshots"
 
 PROFILE = {
     "row_count": 6,
-    "column_count": 3,
+    "column_count": 4,
     "columns": [
         {
             "name": "Alan",
@@ -42,6 +42,18 @@ PROFILE = {
             "distinct_count": 6,
             "min": "2019-05-03T00:00:00",
             "max": "2019-05-08T00:00:00",
+        },
+        {
+            "name": "Dönem",
+            "original_name": "Dönem",
+            "type": "period",
+            "null_count": 0,
+            "distinct_count": 3,
+            "top_values": [{"value": "Roma", "count": 3}],
+            "max_length": 10,
+            "order": ["Demir Çağı", "Helenistik", "Roma"],
+            "unplaced": [],
+            "order_source": "detected",
         },
     ],
 }
@@ -103,3 +115,17 @@ def test_prompt_never_contains_rows_below_sample_level():
         )
     )
     assert "sample_rows" not in minimal
+
+
+def test_period_order_stays_on_the_server():
+    text = render(
+        build_messages(
+            profile_for_model=profile_for_model(PROFILE, "statistics"),
+            x_field="Dönem",
+            y_field="Sayı",
+            color_field=None,
+            prompt="x",
+        )
+    )
+    assert '"type": "period"' in text and 'period is "ordinal"' in text
+    assert "Helenistik" not in text and "order_source" not in text

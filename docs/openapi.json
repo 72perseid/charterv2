@@ -563,6 +563,74 @@
     ]
    }
   },
+  "/api/datasets/{dataset_id}/periods/ask": {
+   "post": {
+    "operationId": "datasets_api_ask_about_periods",
+    "summary": "Ask About Periods",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "dataset_id",
+      "schema": {
+       "title": "Dataset Id",
+       "type": "integer"
+      },
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DatasetDetail"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Bad Request",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "description": "Send the labels of one period column that nothing here could place to the\nuser's model (ADR 0018). The column's distinct values leave the server, so\nthis runs only on this explicit request, never as part of an upload.",
+    "tags": [
+     "datasets"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PeriodQuestion"
+       }
+      }
+     },
+     "required": true
+    },
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
   "/api/datasets/{dataset_id}/rows": {
    "get": {
     "operationId": "datasets_api_dataset_rows",
@@ -1539,9 +1607,124 @@
        }
       ],
       "title": "Header Row"
+     },
+     "periods": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "anyOf": [
+          {
+           "items": {
+            "type": "string"
+           },
+           "type": "array"
+          },
+          {
+           "type": "boolean"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Periods"
+     },
+     "period_mappings": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "additionalProperties": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "type": "object"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Period Mappings"
+     },
+     "period_dates": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "anyOf": [
+          {
+           "$ref": "#/components/schemas/PeriodDates"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Period Dates"
      }
     },
     "title": "DatasetPatch",
+    "type": "object"
+   },
+   "PeriodDates": {
+    "description": "One column dated by others in the same dataset: `start`, and `end` if\nthere is one. `bc`: the years are positive numbers counted backwards.",
+    "properties": {
+     "start": {
+      "title": "Start",
+      "type": "string"
+     },
+     "end": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "End"
+     },
+     "bc": {
+      "default": false,
+      "title": "Bc",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "start"
+    ],
+    "title": "PeriodDates",
+    "type": "object"
+   },
+   "PeriodQuestion": {
+    "properties": {
+     "column": {
+      "title": "Column",
+      "type": "string"
+     }
+    },
+    "required": [
+     "column"
+    ],
+    "title": "PeriodQuestion",
     "type": "object"
    },
    "RowsOut": {

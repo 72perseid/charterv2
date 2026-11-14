@@ -81,3 +81,58 @@ def test_schema_violation_is_reported_with_path():
     spec["encoding"]["y"]["type"] = "money"
     with pytest.raises(SpecError, match="encoding/y"):
         validate_spec(json.dumps(spec), **KW)
+
+
+ORDER = ["Kalkolitik", "Demir Çağı", "Roma"]
+PERIOD_KW = {
+    "field_names": FIELDS | {"Dönem"},
+    "x_field": "Dönem",
+    "y_field": "Sayı",
+    "color_field": None,
+    "period_orders": {"Dönem": ORDER},
+}
+
+
+def period_spec(**x) -> str:
+    spec = json.loads(json.dumps(GOOD))
+    spec["encoding"]["x"] = {"field": "Dönem", "type": "nominal", **x}
+    return json.dumps(spec)
+
+
+def test_period_field_is_put_in_chronological_order():
+    out = validate_spec(period_spec(), **PERIOD_KW)
+    assert out.spec["encoding"]["x"] == {"field": "Dönem", "type": "ordinal", "sort": ORDER}
+    assert out.corrections == ['x: "Dönem" put in chronological order, oldest first']
+
+
+def test_period_order_replaces_the_models_guess_and_a_time_unit():
+    out = validate_spec(
+        period_spec(type="temporal", timeUnit="year", sort=["Roma", "Demir Çağı"]), **PERIOD_KW
+    )
+    assert out.spec["encoding"]["x"] == {"field": "Dönem", "type": "ordinal", "sort": ORDER}
+
+
+def test_period_newest_first_and_its_revision():
+    newest = ORDER[::-1]
+    out = validate_spec(period_spec(sort="descending"), **PERIOD_KW)
+    assert out.spec["encoding"]["x"]["sort"] == newest
+    assert out.corrections == ['x: "Dönem" put in chronological order, newest first']
+    # A revision starts from the parent's spec, which already carries the reversed list.
+    again = validate_spec(period_spec(type="ordinal", sort=newest), **PERIOD_KW)
+    assert again.spec["encoding"]["x"]["sort"] == newest
+    assert again.corrections == []
+
+
+def test_period_sorted_by_another_measure_is_left_alone():
+    out = validate_spec(period_spec(sort="-y"), **PERIOD_KW)
+    assert out.spec["encoding"]["x"] == {"field": "Dönem", "type": "nominal", "sort": "-y"}
+    assert out.corrections == []
+
+
+def test_period_on_color_and_counted_period():
+    spec = json.loads(json.dumps(GOOD))
+    spec["encoding"]["color"] = {"field": "Dönem", "type": "nominal"}
+    spec["encoding"]["y"] = {"field": "Dönem", "aggregate": "count", "type": "quantitative"}
+    out = validate_spec(json.dumps(spec), **PERIOD_KW)
+    assert out.spec["encoding"]["color"]["sort"] == ORDER
+    assert "sort" not in out.spec["encoding"]["y"]

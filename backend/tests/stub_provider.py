@@ -31,6 +31,16 @@ CANNED_SPEC = {
 }
 
 
+# What the stub says when asked about period labels (generation/periods.py): one
+# name PeriodO knows, one it does not (years only), one refusal, one label nobody asked about.
+PERIOD_ANSWERS = {
+    "Erken Hristiyanlık": {"name": "Early Christian", "start": 100, "end": 600},
+    "Evre 7": {"name": "Kinet Phase 7", "start": -700, "end": -650},
+    "Açma B": {"name": None, "start": None, "end": None},
+    "Roma": {"name": "Neolithic", "start": -9000, "end": -6000},
+}
+
+
 class Handler(BaseHTTPRequestHandler):
     server: StubServer
 
@@ -106,6 +116,11 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(b"<html>oops</html>")
             return None
         content = "Sure, here is prose." if key == "text-key" else json.dumps(CANNED_SPEC)
+        asked_about_periods = "order archaeological period labels" in json.dumps(
+            body.get("messages", [])
+        )
+        if asked_about_periods and key != "text-key":
+            content = json.dumps(PERIOD_ANSWERS, ensure_ascii=False)
         if "single word: ok" in json.dumps(body.get("messages", [])):
             content = "ok"  # the connection test
         return self._send(

@@ -138,3 +138,47 @@ def test_coerce_integer_floats_become_integer():
     out, kind = coerce_series(pd.Series([1.0, 2.0, None]))
     assert kind == "integer"
     assert out.tolist()[:2] == [1, 2]
+
+
+PERIOD_CSV = (
+    "Buluntu;Dönem;Malzeme;Sayı\n"
+    "K1;Roma;Demir;4\n"
+    "K2;Helenistik;Bronz;2\n"
+    "K3;Geç Tunç Çağı;Bronz;7\n"
+    "K4;Roma;Demir;1\n"
+    "K5;Karışık;Kemik;3\n"
+)
+
+
+def test_period_column_is_detected(tmp_path: Path):
+    path = tmp_path / "donem.csv"
+    path.write_text(PERIOD_CSV, encoding="utf-8")
+    parsed = parse_file(path, "donem.csv", {}, LIMITS)
+    assert parsed.parse_options["types"] == {
+        "Buluntu": "string",
+        "Dönem": "period",
+        "Malzeme": "string",  # iron and bronze as materials, not ages
+        "Sayı": "integer",
+    }
+    assert parsed.parse_options["period_orders"] == {}
+    assert str(parsed.frame["Dönem"].dtype) == "string"
+
+
+def test_period_overrides(tmp_path: Path):
+    path = tmp_path / "donem.csv"
+    path.write_text(PERIOD_CSV, encoding="utf-8")
+    wanted = {"Dönem": False, "Malzeme": ["Kemik", "Bronz", "Demir"], "Sayı": True}
+    parsed = parse_file(path, "donem.csv", {"periods": wanted}, LIMITS)
+    types = parsed.parse_options["types"]
+    assert types["Dönem"] == "string"
+    assert types["Malzeme"] == "period"
+    assert types["Sayı"] == "integer"  # only text columns can be periods
+    assert parsed.parse_options["period_orders"] == {"Malzeme": ["Kemik", "Bronz", "Demir"]}
+
+
+def test_text_is_trimmed(tmp_path: Path):
+    path = tmp_path / "bosluk.csv"
+    path.write_text("Kod,Dönem\nA,LN\nB,LN \nC,\xa0FN\nD,   \n", encoding="utf-8")
+    parsed = parse_file(path, "bosluk.csv", {}, LIMITS)
+    assert parsed.frame["Dönem"].tolist()[:3] == ["LN", "LN", "FN"]
+    assert pd.isna(parsed.frame["Dönem"].iloc[3])

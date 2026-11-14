@@ -8,15 +8,25 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja import File, Form, Router, UploadedFile
 
+from accounts.models import ModelConfig
+from datasets.chronology import MAX_DISTINCT
 from datasets.ingest import IngestError, kind_of
 from datasets.models import Dataset
 from datasets.profile import rows_as_records
-from datasets.schemas import DatasetDetail, DatasetOut, DatasetPatch, Detail, RowsOut
+from datasets.schemas import (
+    DatasetDetail,
+    DatasetOut,
+    DatasetPatch,
+    Detail,
+    PeriodQuestion,
+    RowsOut,
+)
 from datasets.storage import ORIGINAL_STEM, dataset_dir, remove_dataset_dir
 from datasets.tasks import load_rows, mark_for_reingest
 
 router = Router(tags=["datasets"])
 
+MAPPING_MAX_LENGTH = 120
 ROWS_MAX_LIMIT = 100_000  # the chart page needs every row; SPEC §6.1 caps datasets at this
 
 
@@ -93,8 +103,92 @@ def patch_dataset(request: HttpRequest, dataset_id: int, data: DatasetPatch):
     if data.header_row is not None and data.header_row != overrides.get("header_row"):
         overrides["header_row"] = data.header_row
         changed = True
+    if data.periods:
+        columns = {c["name"]: c for c in dataset.profile.get("columns", [])}
+        periods = dict(overrides.get("periods", {}))
+        for name, choice in data.periods.items():
+            column = columns.get(name)
+            if column is None:
+                return 400, {"detail": f"There is no column named '{name}'."}
+            if column["type"] not in {"string", "period"}:
+                return 400, {"detail": f"'{name}' is not a text column."}
+            if (
+                choice is not None
+                and choice is not False
+                and (column["distinct_count"] > MAX_DISTINCT)
+            ):
+                return 400, {
+                    "detail": f"'{name}' has more than {MAX_DISTINCT} distinct values; "
+                    "that is too many to order as periods."
+                }
+            if choice is None:
+                periods.pop(name, None)
+            else:
+                periods[name] = choice
+        if periods != overrides.get("periods", {}):
+            overrides["periods"] = periods
+            changed = True
+    if data.period_dates:
+        columns = {c["name"]: c for c in dataset.profile.get("columns", [])}
+        dates = dict(overrides.get("period_dates", {}))
+        for name, link in data.period_dates.items():
+            if link is None:
+                dates.pop(name, None)
+                continue
+            if name not in columns or columns[name]["type"] not in {"string", "period"}:
+                return 400, {"detail": f"'{name}' is not a text column."}
+            if columns[name]["distinct_count"] > MAX_DISTINCT:
+                return 400, {
+                    "detail": f"'{name}' has more than {MAX_DISTINCT} distinct values; "
+                    "that is too many to order as periods."
+                }
+            for other in filter(None, (link.start, link.end)):
+                if other not in columns or columns[other]["type"] not in {"integer", "number"}:
+                    return 400, {"detail": f"'{other}' is not a number column."}
+            dates[name] = {"start": link.start, "end": link.end or None, "bc": link.bc}
+        if dates != overrides.get("period_dates", {}):
+            overrides["period_dates"] = dates
+            changed = True
+    if data.period_mappings:
+        columns = {c["name"]: c for c in dataset.profile.get("columns", [])}
+        mappings = {k: dict(v) for k, v in overrides.get("period_mappings", {}).items()}
+        for name, wanted in data.period_mappings.items():
+            if name not in columns or columns[name]["type"] not in {"string", "period"}:
+                return 400, {"detail": f"'{name}' is not a text column."}
+            current = mappings.setdefault(name, {})
+            for value, meaning in wanted.items():
+                if meaning is None or not meaning.strip():
+                    current.pop(value, None)
+                else:
+                    current[value] = meaning.strip()[:MAPPING_MAX_LENGTH]
+            if not current:
+                mappings.pop(name)
+        if mappings != overrides.get("period_mappings", {}):
+            overrides["period_mappings"] = mappings
+            changed = True
     if changed:
         mark_for_reingest(dataset, overrides)
+    return 200, dataset
+
+
+@router.post("/{dataset_id}/periods/ask", response={200: DatasetDetail, 400: Detail, 409: Detail})
+def ask_about_periods(request: HttpRequest, dataset_id: int, data: PeriodQuestion):
+    """Send the labels of one period column that nothing here could place to the
+    user's model (ADR 0018). The column's distinct values leave the server, so
+    this runs only on this explicit request, never as part of an upload."""
+    dataset = own(request, dataset_id)
+    if dataset.status != Dataset.Status.DONE:
+        return 409, {"detail": "The dataset has not been parsed yet."}
+    column = next((c for c in dataset.profile.get("columns", []) if c["name"] == data.column), None)
+    if column is None or column["type"] != "period":
+        return 400, {"detail": f"'{data.column}' is not a period column."}
+    if not column.get("unplaced"):
+        return 400, {"detail": "Every value in this column is already placed."}
+    if not ModelConfig.objects.filter(user=request.user).exists():
+        return 400, {"detail": "Configure a model under Settings first."}
+    overrides = dict(dataset.parse_options.get("overrides", {}))
+    overrides["period_questions"] = [data.column]
+    mark_for_reingest(dataset, overrides)
     return 200, dataset
 
 

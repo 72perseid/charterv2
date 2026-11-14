@@ -99,7 +99,7 @@ def test_create_chart_makes_revision_1_and_worker_finishes_it(ready, stub):
     assert revision["request"]["parameters"]["seed"] == 1
     assert revision["response_text"].startswith("{")
     assert revision["model"] == "stub" and revision["endpoint_host"] == "127.0.0.1"
-    assert revision["prompt_version"] == "p2026-09-a"
+    assert revision["prompt_version"] == "p2026-11-a"
     assert revision["usage"]["total_tokens"] == 19
     assert revision["usage"]["reasoning_tokens"] == 3
     assert revision["cost_usd"] is None  # no prices entered
@@ -180,7 +180,7 @@ def test_provider_401_fails_with_actionable_message(ready, stub):
     assert "check your API key" in revision["error_message"]
     # The record is kept even when the endpoint never answered usefully.
     assert revision["model"] == "stub" and revision["endpoint_host"] == "127.0.0.1"
-    assert revision["prompt_version"] == "p2026-09-a" and revision["duration_ms"] is not None
+    assert revision["prompt_version"] == "p2026-11-a" and revision["duration_ms"] is not None
 
 
 def test_second_revision_gets_parent_spec_in_prompt(ready, stub):
@@ -326,7 +326,7 @@ def test_export_bundle_holds_the_whole_record(ready, stub):
     assert "Previous specification" in second["request"]["messages"][1]["content"]
     assert second["response_text"].startswith("{")
     assert second["cost_usd"] == pytest.approx(12 * 1e-6 + 7 * 2e-6)
-    assert second["prompt_version"] == "p2026-09-a"
+    assert second["prompt_version"] == "p2026-11-a"
 
     other = CsrfClient(enforce_csrf_checks=True)
     other.get("/api/auth/csrf")
@@ -336,3 +336,128 @@ def test_export_bundle_holds_the_whole_record(ready, stub):
         content_type="application/json",
     )
     assert other.get(f"/api/charts/{chart['id']}/export").status_code == 404
+
+
+def test_period_column_is_charted_oldest_first(user_client: CsrfClient, stub):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    content = "Alan;Sayı\nRoma;4\nHelenistik;2\nDemir Çağı;7\nRoma;1\n".encode()
+    dataset_id = user_client.post(
+        "/api/datasets", {"name": "Dönemler", "file": SimpleUploadedFile("donem.csv", content)}
+    ).json()["id"]
+    process_one_dataset()
+    set_key(user_client, stub, "good-key")
+
+    revision_id = create_chart(user_client, dataset_id).json()["revisions"][0]["id"]
+    process_one_revision()
+    revision = user_client.get(f"/api/revisions/{revision_id}").json()
+    assert revision["status"] == "done", revision["error_message"]
+    # The stub answered with a plain nominal x; the order comes from the profile.
+    assert revision["spec"]["encoding"]["x"] == {
+        "field": "Alan",
+        "type": "ordinal",
+        "sort": ["Demir Çağı", "Helenistik", "Roma"],
+    }
+    assert revision["corrections"] == ['x: "Alan" put in chronological order, oldest first']
+    sent = revision["request"]["messages"][1]["content"]
+    assert '"type": "period"' in sent and '"order"' not in sent
+
+
+ASK_CSV = (
+    "Buluntu;Dönem\nK1;Roma\nK2;Helenistik\nK3;Erken Hristiyanlık\nK4;Evre 7\nK5;Açma B\nK6;Roma\n"
+).encode()
+
+
+def ask(client, dataset_id, column="Dönem"):
+    return client.post(
+        f"/api/datasets/{dataset_id}/periods/ask",
+        json.dumps({"column": column}),
+        content_type="application/json",
+    )
+
+
+def period_dataset(client):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    dataset_id = client.post(
+        "/api/datasets", {"name": "Dönemler", "file": SimpleUploadedFile("d.csv", ASK_CSV)}
+    ).json()["id"]
+    process_one_dataset()
+    # Two readable labels in five is too few to detect; the user says it is a period column.
+    client.patch(
+        f"/api/datasets/{dataset_id}",
+        json.dumps({"periods": {"Dönem": True}}),
+        content_type="application/json",
+    )
+    process_one_dataset()
+    return dataset_id
+
+
+def period_column(client, dataset_id):
+    detail = client.get(f"/api/datasets/{dataset_id}").json()
+    return detail, next(c for c in detail["profile"]["columns"] if c["name"] == "Dönem")
+
+
+def test_model_is_asked_about_unplaced_periods_only_on_request(user_client: CsrfClient, stub):
+    dataset_id = period_dataset(user_client)
+    _, column = period_column(user_client, dataset_id)
+    assert column["type"] == "period"
+    assert column["unplaced"] == ["Açma B", "Erken Hristiyanlık", "Evre 7"]
+    assert not any(
+        "period labels" in json.dumps(r["body"]) for r in stub.requests
+    )  # nothing sent yet
+
+    assert ask(user_client, dataset_id).status_code == 400  # no model configured
+    set_key(user_client, stub, "good-key")
+    assert ask(user_client, dataset_id, "Buluntu").status_code == 400  # not a period column
+    response = ask(user_client, dataset_id)
+    assert response.status_code == 200 and response.json()["status"] == "pending"
+    process_one_dataset()
+
+    detail, column = period_column(user_client, dataset_id)
+    assert detail["status"] == "done"
+    assert column["order"] == ["Evre 7", "Helenistik", "Roma", "Erken Hristiyanlık", "Açma B"]
+    assert column["unplaced"] == ["Açma B"]
+    via = {m["value"]: m["via"] for m in column["matches"]}
+    assert via == {
+        "Evre 7": "model",
+        "Helenistik": "translation",
+        "Roma": "translation",  # the stub also "answered" Roma; it was never asked, so ignored
+        "Erken Hristiyanlık": "model",
+    }
+    # The record: what was sent, what came back.
+    record = detail["parse_options"]["period_requests"]["Dönem"]
+    assert record["labels"] == ["Açma B", "Erken Hristiyanlık", "Evre 7"]
+    assert record["answered"] == ["Erken Hristiyanlık", "Evre 7"]
+    assert (
+        record["prompt_version"] == "periods-2026-11-a" and record["endpoint_host"] == "127.0.0.1"
+    )
+    assert "Evre 7" in record["messages"][1]["content"] and record["response_text"].startswith("{")
+    assert "period_questions" not in detail["parse_options"]["overrides"]
+
+    # Answers survive a later re-read without another call.
+    calls = len(stub.requests)
+    user_client.patch(
+        f"/api/datasets/{dataset_id}",
+        json.dumps({"header_row": 0}),
+        content_type="application/json",
+    )
+    user_client.patch(
+        f"/api/datasets/{dataset_id}",
+        json.dumps({"periods": {"Buluntu": False}}),
+        content_type="application/json",
+    )
+    process_one_dataset()
+    _, column = period_column(user_client, dataset_id)
+    assert column["unplaced"] == ["Açma B"] and len(stub.requests) == calls
+
+
+def test_a_failed_period_question_leaves_the_dataset_usable(user_client: CsrfClient, stub):
+    dataset_id = period_dataset(user_client)
+    set_key(user_client, stub, "text-key")  # the stub answers in prose
+    ask(user_client, dataset_id)
+    process_one_dataset()
+    detail, column = period_column(user_client, dataset_id)
+    assert detail["status"] == "done"
+    assert column["unplaced"] == ["Açma B", "Erken Hristiyanlık", "Evre 7"]
+    assert "not JSON" in detail["parse_options"]["period_requests"]["Dönem"]["error"]

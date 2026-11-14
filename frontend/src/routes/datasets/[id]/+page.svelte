@@ -1,6 +1,14 @@
 <script lang="ts">
   import { goto, invalidateAll } from '$app/navigation';
-  import { ApiError, datasets, isBusy, type ColumnType, type PrivacyLevel } from '$lib/api';
+  import {
+    ApiError,
+    datasets,
+    isBusy,
+    type ColumnType,
+    type PeriodChoice,
+    type PeriodDates,
+    type PrivacyLevel
+  } from '$lib/api';
   import ChartForm from '$lib/components/ChartForm.svelte';
   import DataTable from '$lib/components/DataTable.svelte';
   import PrivacyPicker from '$lib/components/PrivacyLevel.svelte';
@@ -44,6 +52,17 @@
   }
 
   const setPrivacy = (level: PrivacyLevel) => run(() => datasets.patch(d.id, { privacy_level: level }));
+
+  // Re-reads the file with the new choice; the page polls until it is done.
+  const setPeriod = (column: string, choice: PeriodChoice) =>
+    run(() => datasets.patch(d.id, { periods: { [column]: choice } }));
+
+  const datePeriods = (column: string, link: PeriodDates | null) =>
+    run(() => datasets.patch(d.id, { period_dates: { [column]: link } }));
+
+  const askPeriods = (column: string) => run(() => datasets.askPeriods(d.id, column));
+  const mapPeriods = (column: string, meanings: Record<string, string | null>) =>
+    run(() => datasets.patch(d.id, { period_mappings: { [column]: meanings } }));
 
   function applyParse(event: SubmitEvent) {
     event.preventDefault();
@@ -152,7 +171,15 @@
 
   <section>
     <h2>{s.profile}</h2>
-    <ProfileTable columns={d.profile.columns} />
+    <ProfileTable
+      columns={d.profile.columns}
+      requests={d.parse_options.period_requests}
+      onperiod={setPeriod}
+      mappings={d.parse_options.overrides?.period_mappings}
+      onask={askPeriods}
+      onmap={mapPeriods}
+      ondate={datePeriods}
+    />
   </section>
 
   {#if data.rows}

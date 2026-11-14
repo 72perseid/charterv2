@@ -14,7 +14,12 @@ export type User = { id: string; email: string; display_name: string };
 
 export type Status = 'pending' | 'running' | 'done' | 'failed';
 export type PrivacyLevel = 'minimal' | 'statistics' | 'sample';
-export type ColumnType = 'integer' | 'number' | 'date' | 'boolean' | 'string';
+export type ColumnType = 'integer' | 'number' | 'date' | 'boolean' | 'string' | 'period';
+
+// What the user says about one text column: a list is the chronological order
+// (oldest first), true makes it a period column with the detected order, false
+// keeps it plain text, null hands it back to detection.
+export type PeriodChoice = string[] | boolean | null;
 
 export type Dataset = {
   id: number;
@@ -42,6 +47,42 @@ export type ColumnProfile = {
   true_count?: number;
   top_values?: { value: string; count: number }[];
   max_length?: number;
+  // period columns: every distinct value oldest first; `unplaced` sort last
+  order?: string[];
+  unplaced?: string[];
+  order_source?: 'detected' | 'user';
+  // which PeriodO definition (or date) decided each value's place, and for where
+  matches?: PeriodMatch[];
+  region?: string | null;
+  periodo_snapshot?: string;
+  // the columns of this dataset that date the values, when the user linked them
+  dated_by?: PeriodDates;
+};
+
+// Start and end year columns for a period column; `bc` when years are counted backwards.
+export type PeriodDates = { start: string; end?: string | null; bc?: boolean };
+
+export type PeriodMatch = {
+  value: string;
+  start: number;
+  stop: number;
+  via: 'periodo' | 'abbreviation' | 'translation' | 'derived' | 'year' | 'model' | 'user' | 'data';
+  label?: string;
+  id?: string; // PeriodO id; PERIODO_PERMALINK + id opens the definition
+  source?: string;
+  varies?: boolean; // via data: the rows with this value do not all give the same dates
+};
+
+export const PERIODO_PERMALINK = 'http://n2t.net/ark:/99152/';
+
+// The stored record of one "ask the model" call for a period column.
+export type PeriodRequest = {
+  asked_at: string;
+  labels: string[];
+  answered?: string[];
+  error?: string;
+  model?: string;
+  endpoint_host?: string;
 };
 
 export type ParseOptions = {
@@ -52,7 +93,15 @@ export type ParseOptions = {
   sheet?: string;
   sheets?: string[];
   header_row?: number;
-  overrides?: { sheet?: string; header_row?: number };
+  overrides?: {
+    sheet?: string;
+    header_row?: number;
+    periods?: Record<string, string[] | boolean>;
+    // per column, per value: what the user says the value means
+    period_mappings?: Record<string, Record<string, string>>;
+    period_dates?: Record<string, PeriodDates>;
+  };
+  period_requests?: Record<string, PeriodRequest>;
 };
 
 export type DatasetDetail = Dataset & {
@@ -280,8 +329,19 @@ export const datasets = {
   },
   patch: (
     id: number,
-    fields: { name?: string; privacy_level?: PrivacyLevel; sheet?: string; header_row?: number }
+    fields: {
+      name?: string;
+      privacy_level?: PrivacyLevel;
+      sheet?: string;
+      header_row?: number;
+      periods?: Record<string, PeriodChoice>;
+      period_mappings?: Record<string, Record<string, string | null>>;
+      period_dates?: Record<string, PeriodDates | null>;
+    }
   ) => request<DatasetDetail>(`/datasets/${id}`, { method: 'PATCH', body: fields }),
+  // Sends the column's distinct values to the user's model: only ever on a click.
+  askPeriods: (id: number, column: string) =>
+    request<DatasetDetail>(`/datasets/${id}/periods/ask`, { method: 'POST', body: { column } }),
   remove: (id: number) => request<void>(`/datasets/${id}`, { method: 'DELETE' }),
   rows: (id: number, limit = 100, offset = 0) =>
     request<Rows>(`/datasets/${id}/rows?limit=${limit}&offset=${offset}`),

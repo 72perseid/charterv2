@@ -19,3 +19,4 @@ One short record per decision in SPEC.md §2, so the reasoning survives the pers
 - [0015](0015-revision-not-fine-tune.md) "Revision", not "fine-tune"
 - [0016](0016-private-endpoints-refused.md) Private and plain-http endpoints refused by default
 - [0017](0017-cost-at-run-time.md) Cost estimated from user-entered prices, fixed at run time
+- [0018](0018-period-columns.md) Period columns are ordered by the server, with PeriodO as the reference

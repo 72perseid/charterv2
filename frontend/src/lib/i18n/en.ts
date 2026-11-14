@@ -66,6 +66,59 @@ export const en = {
         nulls: 'Empty',
         distinct: 'Distinct',
         summary: 'Summary'
+      },
+      period: {
+        unplaced: 'not placed, sorts last',
+        yours: 'your order',
+        edit: 'Order and sources',
+        treat: 'Treat as periods',
+        dates: 'Dates from columns',
+        datesTitle: 'Date the values of',
+        datesHint:
+          'Pick the columns of this dataset that hold the start and end year of each row. Every value is placed by the earliest start and the latest end among its rows, and these dates come before PeriodO. Values whose rows have no dates are still looked up in PeriodO.',
+        datesStart: 'Start year column',
+        datesEnd: 'End year column',
+        datesNone: '(none)',
+        datesBc: 'Years are counted BC (1500 means 1500 BC)',
+        datesSave: 'Use these dates',
+        datesRemove: 'Remove the link',
+        datedBy: 'Dated by',
+        varies: 'the dates differ between rows; the widest span is used',
+        placedBy: 'How each value was placed',
+        datedFor: 'Dated for',
+        snapshot: 'PeriodO snapshot',
+        bc: 'BC',
+        ad: 'AD',
+        via: {
+          periodo: 'PeriodO',
+          abbreviation: 'PeriodO, abbreviation expanded',
+          translation: 'PeriodO, translated',
+          derived: 'part of a PeriodO period',
+          year: 'date in the label',
+          model: 'your model',
+          user: 'your meaning',
+          data: 'dates in this dataset'
+        },
+        means: 'Means',
+        meansPlaceholder: 'e.g. Late Neolithic, or 5300-4500 BC',
+        meansHint:
+          'Say what a value means: a period name as it is usually written, or a date. It is looked up in PeriodO like any other label and overrules what was found.',
+        notRead: 'could not be read',
+        notPlaced: 'not placed',
+        saveMappings: 'Save meanings',
+        typeOrder: 'Or type the whole order by hand',
+        modelEstimate: 'estimate, no PeriodO definition',
+        ask: 'Ask the model about the unplaced values',
+        askConfirm: 'Send this column\'s values to your model?',
+        askHint:
+          'Sends the distinct values of this one column to the model endpoint in Settings. Nothing is sent unless you press this.',
+        askFailed: 'The model could not be asked',
+        editorLabel: 'Chronological order of',
+        editorHint: 'One value per line, oldest first. Values you leave out sort last.',
+        save: 'Save order',
+        detect: 'Detect again',
+        notPeriod: 'Not periods',
+        cancel: 'Close'
       }
     },
     privacy: {
@@ -82,7 +135,14 @@ export const en = {
       }
     }
   },
-  types: { integer: 'integer', number: 'number', date: 'date', boolean: 'boolean', string: 'text' },
+  types: {
+    integer: 'integer',
+    number: 'number',
+    date: 'date',
+    boolean: 'boolean',
+    string: 'text',
+    period: 'period'
+  },
   charts: {
     title: 'Charts',
     empty: 'No charts yet. Open a dataset and describe the chart you want.',

@@ -165,3 +165,174 @@ def test_download_returns_original(user_client: CsrfClient):
     assert response.status_code == 200
     assert b"".join(response.streaming_content) == turkish_csv_bytes()
     assert 'filename="kinet.csv"' in response["Content-Disposition"]
+
+
+PERIOD_CSV = (
+    "Buluntu;Evre;Dönem;Sayı\n"
+    "K1;Evre 2;Roma;4\n"
+    "K2;Evre 10;Helenistik;2\n"
+    "K3;Evre 1;Demir Çağı;7\n"
+    "K4;Evre 2;Roma;1\n"
+).encode()
+
+
+def patch(client: Client, dataset_id: int, body: dict):
+    return client.patch(
+        f"/api/datasets/{dataset_id}", json.dumps(body), content_type="application/json"
+    )
+
+
+def test_period_column_and_its_overrides(user_client: CsrfClient):
+    dataset_id = upload(user_client, "donem", PERIOD_CSV, "donem.csv").json()["id"]
+    process_one_dataset()
+    columns = {
+        c["name"]: c
+        for c in user_client.get(f"/api/datasets/{dataset_id}").json()["profile"]["columns"]
+    }
+    assert columns["Dönem"]["type"] == "period"
+    assert columns["Dönem"]["order"] == ["Demir Çağı", "Helenistik", "Roma"]
+    assert columns["Evre"]["type"] == "string"
+
+    # Site phases mean nothing to the table of periods: the user gives the order.
+    wanted = ["Evre 10", "Evre 2", "Evre 1"]
+    response = patch(user_client, dataset_id, {"periods": {"Evre": wanted, "Dönem": False}})
+    assert response.status_code == 200 and response.json()["status"] == "pending"
+    process_one_dataset()
+    detail = user_client.get(f"/api/datasets/{dataset_id}").json()
+    columns = {c["name"]: c for c in detail["profile"]["columns"]}
+    assert columns["Evre"]["type"] == "period"
+    assert columns["Evre"]["order"] == wanted and columns["Evre"]["order_source"] == "user"
+    assert columns["Dönem"]["type"] == "string" and "order" not in columns["Dönem"]
+    assert detail["parse_options"]["overrides"]["periods"] == {"Evre": wanted, "Dönem": False}
+
+    # null hands the column back to detection.
+    patch(user_client, dataset_id, {"periods": {"Dönem": None}})
+    process_one_dataset()
+    detail = user_client.get(f"/api/datasets/{dataset_id}").json()
+    columns = {c["name"]: c for c in detail["profile"]["columns"]}
+    assert columns["Dönem"]["type"] == "period"
+    assert detail["parse_options"]["overrides"]["periods"] == {"Evre": wanted}
+
+
+def test_period_override_is_checked(user_client: CsrfClient):
+    dataset_id = upload(user_client, "donem", PERIOD_CSV, "donem.csv").json()["id"]
+    process_one_dataset()
+    missing = patch(user_client, dataset_id, {"periods": {"Yok": True}})
+    assert missing.status_code == 400 and "no column" in missing.json()["detail"]
+    number = patch(user_client, dataset_id, {"periods": {"Sayı": True}})
+    assert number.status_code == 400 and "not a text column" in number.json()["detail"]
+    assert user_client.get(f"/api/datasets/{dataset_id}").json()["status"] == "done"
+
+
+def test_period_values_can_be_mapped_by_hand(user_client: CsrfClient):
+    content = "Buluntu;Dönem\nK1;Roma\nK2;Helenistik\nK3;Evre 7\nK4;Saray\nK5;Roma\n".encode()
+    dataset_id = upload(user_client, "donem", content, "donem.csv").json()["id"]
+    process_one_dataset()
+    detail = user_client.get(f"/api/datasets/{dataset_id}").json()
+    column = next(c for c in detail["profile"]["columns"] if c["name"] == "Dönem")
+    assert column["type"] == "period"  # the header says so, two of four values are read
+    assert column["unplaced"] == ["Evre 7", "Saray"]
+
+    mappings = {"Dönem": {"Evre 7": "MÖ 720-650", "Saray": "Middle Minoan"}}
+    response = patch(user_client, dataset_id, {"period_mappings": mappings})
+    assert response.status_code == 200 and response.json()["status"] == "pending"
+    process_one_dataset()
+    detail = user_client.get(f"/api/datasets/{dataset_id}").json()
+    column = next(c for c in detail["profile"]["columns"] if c["name"] == "Dönem")
+    assert column["order"] == ["Saray", "Evre 7", "Helenistik", "Roma"]
+    assert column["unplaced"] == []
+    via = {m["value"]: m["via"] for m in column["matches"]}
+    assert via["Evre 7"] == "user" and via["Saray"] == "user" and via["Roma"] == "translation"
+    assert detail["parse_options"]["overrides"]["period_mappings"] == mappings
+
+    # An empty meaning removes the mapping; an unknown column is refused.
+    patch(user_client, dataset_id, {"period_mappings": {"Dönem": {"Saray": ""}}})
+    process_one_dataset()
+    detail = user_client.get(f"/api/datasets/{dataset_id}").json()
+    assert detail["parse_options"]["overrides"]["period_mappings"] == {
+        "Dönem": {"Evre 7": "MÖ 720-650"}
+    }
+    assert (
+        patch(user_client, dataset_id, {"period_mappings": {"Yok": {"a": "b"}}}).status_code == 400
+    )
+
+
+DATED_CSV = (
+    "Kod;Birim;Alan;Başlangıç;Bitiş;Uzunluk\n"
+    "K1;Saray;A;-1900;-1370;4,5\n"
+    "K2;Evre 7;A;-720;-650;3,1\n"
+    "K3;Roma;B;-30;300;2,2\n"
+    "K4;Evre 7;B;-700;-640;5,0\n"
+    "K5;Yüzey;B;;;1,0\n"
+    "K6;Helenistik;A;;;2,0\n"
+).encode()
+
+
+def test_period_column_dated_by_the_datasets_own_columns(user_client: CsrfClient):
+    dataset_id = upload(user_client, "evre", DATED_CSV, "evre.csv").json()["id"]
+    process_one_dataset()
+    columns = {
+        c["name"]: c
+        for c in user_client.get(f"/api/datasets/{dataset_id}").json()["profile"]["columns"]
+    }
+    assert columns["Birim"]["type"] == "string"  # site phases: nothing to detect
+
+    link = {"Birim": {"start": "Başlangıç", "end": "Bitiş"}}
+    assert (
+        patch(user_client, dataset_id, {"period_dates": {"Birim": {"start": "Alan"}}}).status_code
+        == 400
+    )
+    assert (
+        patch(
+            user_client, dataset_id, {"period_dates": {"Uzunluk": {"start": "Bitiş"}}}
+        ).status_code
+        == 400
+    )
+    response = patch(user_client, dataset_id, {"period_dates": link})
+    assert response.status_code == 200 and response.json()["status"] == "pending"
+    process_one_dataset()
+
+    detail = user_client.get(f"/api/datasets/{dataset_id}").json()
+    column = next(c for c in detail["profile"]["columns"] if c["name"] == "Birim")
+    assert column["type"] == "period"
+    assert column["dated_by"] == {"start": "Başlangıç", "end": "Bitiş", "bc": False}
+    # Helenistik has no dates in its rows, so PeriodO places it; Yüzey is undated.
+    assert column["order"] == ["Saray", "Evre 7", "Helenistik", "Roma", "Yüzey"]
+    by_value = {m["value"]: m for m in column["matches"]}
+    assert (by_value["Saray"]["start"], by_value["Saray"]["stop"]) == (-1900, -1370)
+    assert by_value["Saray"]["via"] == "data" and "varies" not in by_value["Saray"]
+    # Two rows, two sets of dates: the widest span, and it says so.
+    assert (by_value["Evre 7"]["start"], by_value["Evre 7"]["stop"]) == (-720, -640)
+    assert by_value["Evre 7"]["varies"] is True
+    assert by_value["Roma"]["via"] == "data"  # the data's own dates come before PeriodO's
+    assert by_value["Helenistik"]["via"] == "translation"
+
+    # Years counted backwards (700 = 700 BC), and a meaning still overrules the data.
+    patch(
+        user_client,
+        dataset_id,
+        {
+            "period_dates": {"Birim": {"start": "Uzunluk", "bc": True}},
+            "period_mappings": {"Birim": {"Saray": "9000 BC"}},
+        },
+    )
+    process_one_dataset()
+    column = next(
+        c
+        for c in user_client.get(f"/api/datasets/{dataset_id}").json()["profile"]["columns"]
+        if c["name"] == "Birim"
+    )
+    by_value = {m["value"]: m for m in column["matches"]}
+    assert by_value["Saray"]["via"] == "user" and by_value["Saray"]["start"] == -9000
+    assert (by_value["Evre 7"]["start"], by_value["Evre 7"]["stop"]) == (-5, -3)
+
+    # Removing the link returns the column to what it was.
+    patch(
+        user_client,
+        dataset_id,
+        {"period_dates": {"Birim": None}, "period_mappings": {"Birim": {"Saray": None}}},
+    )
+    process_one_dataset()
+    detail = user_client.get(f"/api/datasets/{dataset_id}").json()
+    column = next(c for c in detail["profile"]["columns"] if c["name"] == "Birim")
+    assert column["type"] == "string" and "dated_by" not in column

@@ -132,7 +132,7 @@ ChartRevision
   request jsonb null      -- exact messages array + parameters sent to the model
   response_text text null -- raw model output before any parsing
   model text · endpoint_host text · temperature float · seed int null
-  prompt_version text     -- e.g. 'p2026-09-a'; the template id in prompts/
+  prompt_version text     -- e.g. 'p2026-11-a'; the template id in prompts/
   app_version text        -- git sha at run time
   usage jsonb null        -- token counts if the provider returns them
   started_at · finished_at · duration_ms · created_at
@@ -152,11 +152,14 @@ Access rules are enforced in the API layer: every queryset is filtered by `reque
 2. Text: try encodings in order `utf-8-sig`, `utf-8`, `cp1254` (Turkish Windows), `latin-1`. Sniff delimiter over the first 20 lines among `, ; \t |`. If the delimiter is `;`, default `decimal=','`; otherwise detect by checking whether numeric-looking columns parse better with `,` or `.` as decimal. Record every choice in `parse_options`.
 3. Excel: list sheets; use the first non-empty sheet unless the user chose one. Header row is the first row with ≥ 50% non-null cells (*assumed*); record it.
 4. Limits: 20 MB upload, 100 000 rows, 200 columns (*assumed*). Above the limit: `failed` with a user-readable message.
-5. Normalise column names (strip, collapse whitespace, keep original in profile), coerce types (integer, number, date, boolean, string), write `parsed.parquet`, compute the profile, set `done`.
+5. Normalise column names (strip, collapse whitespace, keep original in profile), coerce types (integer, number, date, boolean, string), trim text cells (non-breaking spaces included, so `LN` and `LN ` are one value), write `parsed.parquet`, compute the profile, set `done`.
+6. Periods (added 2026-11-14, ADR 0018). A text column whose values are archaeological periods gets the type `period` and stays text on disk. `datasets/chronology.py` puts its distinct values on a timeline. Dates written in the label are read directly (`1500 BC`, `MÖ 1500`, `M.S. 200`, `9000 BP`, `1500-1200 BC`, `5th century BC`, `MÖ 3. binyıl`). Period names are dated from PeriodO, the gazetteer of published period definitions, vendored as `datasets/periodo_snapshot.json` (CC0; about 9 500 definitions; rebuilt with `manage.py periodo_snapshot`). A name is connected to PeriodO as written, after expanding an abbreviation (`LH IIIC`, `GTÇ`), after translating its words from Turkish or German (`Geç Tunç Çağı`, `Frühbronzezeit`), or as a part of a PeriodO period (`early`, phase `III`). PeriodO has many definitions of one name, so the column is read as a whole: the region most labels have a definition for is chosen, with Turkish and German labels leaning towards where those languages are used, and within the region the definition nearest the middle of the candidates. Detection needs at least two placed values, four in five of the values that are not "unknown / karışık", one value beyond doubt (a year with its era, or a name several PeriodO sources define), and at most 200 distinct values. A header that says so ("Phase/Period", "Dönem") lowers the bar to one value in four, because real period columns are full of site shorthand. Ranges and alternatives are read by their parts (`LN-FN`, `EM I-III`, `LH IIIB-C`, `Late Neolithic or LN`). The user can overrule it per column: say what single values mean, as a period name or a date (`parse_options.overrides.period_mappings`; `ECh` means `Early Chalcolithic`, `Evre 7` means `720-650 BC`), which is read like any label and comes before everything else; point the column at the start and end year columns of the same dataset (`parse_options.overrides.period_dates`, `{column: {start, end, bc}}`; number columns only, `end` optional, `bc` for years counted backwards), which makes it a period column and places each value by the earliest start and latest end among its rows, ahead of PeriodO, while values whose rows carry no dates are still looked up; give the whole order by hand; force the type; or switch it off (`parse_options.overrides.periods`). For values still unplaced the user can ask their own model, per column and only on an explicit request (`POST /datasets/{id}/periods/ask`): the model returns a period name, which is looked up in PeriodO, and years, which are used only when PeriodO has no such name; the request and raw answer are kept in `parse_options.period_requests`. A column of plain numbers such as `-1500` is an integer and already sorts chronologically.
 
 ### 6.2 Profile
 
 Per column: `name`, `original_name`, `type`, `null_count`, `distinct_count`; for numbers `min max mean median`; for dates `min max`; for strings `top_values` (≤ 5 values with counts) and `max_length`. Dataset-level: `row_count`, `column_count`, `parse_options`.
+
+A `period` column has the string fields plus `order` (every distinct value, oldest first), `unplaced` (the values at the end of `order` that nothing could put on the timeline), `order_source` (`detected` or `user`), and for a detected order `matches` (per placed value: start and stop year, how it was connected, and the PeriodO label, id, and source; `varies` when the value's rows give different dates in the linked columns), `region`, `periodo_snapshot`, and `dated_by` when the user linked date columns. None of these reach the model at any privacy level: the server applies the order itself in §6.3 step 4, so the chart prompt only carries the type.
 
 What reaches the model by `privacy_level`:
 
@@ -173,7 +176,7 @@ The level is shown next to the prompt box every time, with a one-line descriptio
 1. Claim: `UPDATE chart_revisions SET status='running', attempts=attempts+1, started_at=now() WHERE id = (SELECT id FROM chart_revisions WHERE status='pending' ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *`.
 2. Build messages from the template in `prompts/{prompt_version}.md`: system rules (§13), the profile at the dataset's privacy level, x/y/color fields, the user's prompt, and for revisions > 1 the parent's spec JSON and prompt.
 3. Call the user's endpoint with `temperature` from `ModelConfig`, `response_format: json_object` when the provider accepts it, `seed` when it accepts it. Timeout 90 s.
-4. Parse: strip code fences, `json.loads`. Validate: object; `$schema` is Vega-Lite v6; has `mark` and `encoding`; every `encoding.*.field` exists in the profile (else replace with the user's selection and record the correction); force `data = {name: 'main'}`; delete `datasets`, `transform[].url`, any `values`; reject `layer`, `concat`, `repeat`, `facet` in v2. Then `jsonschema.validate` against the vendored schema.
+4. Parse: strip code fences, `json.loads`. Validate: object; `$schema` is Vega-Lite v6; has `mark` and `encoding`; every `encoding.*.field` exists in the profile (else replace with the user's selection and record the correction); force `data = {name: 'main'}`; delete `datasets`, `transform[].url`, any `values`; reject `layer`, `concat`, `repeat`, `facet` in v2. A channel that encodes a `period` column gets `type: ordinal` and `sort` set to the profile's order, recorded as a correction; `sort: "descending"` becomes newest first, and a sort by another measure (`"-y"`, a field) is left as the model wrote it. Then `jsonschema.validate` against the vendored schema.
 5. On validation failure: one retry with the validation error appended to the conversation. On second failure or any provider error: `failed` with a message a user can act on (`"Model returned text that is not JSON"`, `"Endpoint returned 401: check your API key"`).
 6. Persist the full record (§5), set `done`, set `chart.current_revision` if this is the newest.
 
@@ -193,7 +196,8 @@ All under `/api`, session-cookie auth, CSRF header on unsafe methods, JSON in an
 |---|---|
 | `POST /auth/register` `POST /auth/login` `POST /auth/logout` `GET /auth/me` | accounts |
 | `GET/PUT /me/model-config` · `POST /me/model-config/test` | BYOK settings; test makes one tiny call and reports the result |
-| `GET /datasets` · `POST /datasets` (multipart) · `GET /datasets/{id}` · `PATCH /datasets/{id}` (name, privacy_level, sheet) · `DELETE /datasets/{id}` | datasets; POST returns immediately with status `pending` |
+| `GET /datasets` · `POST /datasets` (multipart) · `GET /datasets/{id}` · `PATCH /datasets/{id}` (name, privacy_level, sheet, header_row, periods, period_mappings, period_dates) · `DELETE /datasets/{id}` | datasets; POST returns immediately with status `pending` |
+| `POST /datasets/{id}/periods/ask` `{column}` | asks the user's model about the unplaced values of one period column (§6.1 step 6); the only request besides chart generation that sends anything to the model |
 | `GET /datasets/{id}/rows?limit&offset` | parsed rows for the table view and for vega |
 | `GET /datasets/{id}/download` | original file |
 | `GET /charts` · `POST /charts` `{dataset_id, title, x_field, y_field, color_field, prompt}` · `GET /charts/{id}` · `PATCH /charts/{id}` (title, current_revision) · `DELETE /charts/{id}` | charts; POST creates revision 1 |
@@ -257,7 +261,8 @@ VPS (confirmed 2026-09-08): Contabo, EU region, Ubuntu 24.04.4, 4 vCPU, 7.8 GB R
 ## 10. Testing and quality
 
 Backend, pytest:
-- `ingest`: delimiter and decimal detection, cp1254 file, xlsx with a title row above the header, limits.
+- `ingest`: delimiter and decimal detection, cp1254 file, xlsx with a title row above the header, limits, period detection and overrides.
+- `chronology`: dates in labels, names connected to the PeriodO snapshot in English, Turkish and German, the same names dated differently by region, what must not be read as a period, model answers filling only the gaps, dates taken from the dataset's own columns.
 - `profile`: types and stats on a fixture with nulls, dates in Turkish format, mixed numerics.
 - `prompt`: message construction at each privacy level; snapshot the rendered prompt per `prompt_version`.
 - `validate`: bad JSON, missing encoding, unknown field, forbidden `layer`, schema violation, the retry path.
@@ -280,9 +285,9 @@ chart-er/
   backend/
     charter/            settings, urls, asgi/wsgi
     accounts/           user model, auth endpoints, ModelConfig
-    datasets/           models, ingest.py, profile.py, endpoints
+    datasets/           models, ingest.py, chronology.py, periodo.py + snapshot, profile.py, endpoints
     charts/             models, endpoints, export
-    generation/         prompt.py, validate.py, provider.py, worker command
+    generation/         prompt.py, validate.py, provider.py, periods.py, worker command
     prompts/            p2026-09-a.md and successors; vega-lite-v6.schema.json
     tests/
     pyproject.toml  Dockerfile  manage.py
@@ -311,7 +316,7 @@ chart-er/
 
 ## 13. Carried over from v1
 
-Prompt rules (they worked): output JSON only; use the provided types, do not guess from values; add a color encoding when the request says group, by, per, or color, or when a color field is given; temporal x gets `timeUnit` and an axis format; categorical x with quantitative y defaults to `aggregate: sum` unless the request asks for raw points; fallbacks: temporal → line, nominal → bar, both quantitative → point; no `layer`, `concat`, `repeat`, `facet`.
+Prompt rules (they worked; `p2026-11-a` adds that a `period` field is ordinal and is sorted by the server): output JSON only; use the provided types, do not guess from values; add a color encoding when the request says group, by, per, or color, or when a color field is given; temporal x gets `timeUnit` and an axis format; categorical x with quantitative y defaults to `aggregate: sum` unless the request asks for raw points; fallbacks: temporal → line, nominal → bar, both quantitative → point; no `layer`, `concat`, `repeat`, `facet`.
 
 Findings from v1 and where v2 closes them: unauthenticated functions and caller-supplied user ids (§7, session auth on every route); public bucket (§2 file storage); HTML from the model (§2 chart storage); status case mismatch and stuck jobs (§5 status enum, `attempts`, `error_message`); revisions that never saw the data (§6.3 profile in every prompt); incomplete deletion (§7 delete); undocumented access rules (§5 last paragraph); free-text axes (§8 selects from the profile); two clients and duplicated shell (§8 one `api.ts`, one `AppShell`).
 

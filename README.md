@@ -8,7 +8,9 @@ The design and its reasons are in [SPEC.md](SPEC.md); one short record per decis
 
 ## What leaves the server
 
-Chart-er sends one thing to one place: the **dataset profile** to the **model endpoint the user configured** with their own key. The profile is column names, inferred types, row count, null and distinct counts, and, at the default *statistics* level, numeric and date ranges and the five most frequent values of repeated text columns. Identifier columns contribute no values. Raw rows are never sent unless the user switches a dataset to *sample* mode, which adds ten rows chosen with a fixed seed and says so next to the prompt box every time.
+Chart-er sends the **dataset profile** to the **model endpoint the user configured** with their own key, and nothing else unless asked. The profile is column names, inferred types, row count, null and distinct counts, and, at the default *statistics* level, numeric and date ranges and the five most frequent values of repeated text columns. Identifier columns contribute no values. Raw rows are never sent unless the user switches a dataset to *sample* mode, which adds ten rows chosen with a fixed seed and says so next to the prompt box every time.
+
+There is one other request, made only when the user presses a button for it: "ask the model about the unplaced values" on a period column sends the distinct values of that one column to the same endpoint, so the model can name the periods Chart-er could not place. The messages and the answer are stored with the dataset. Period names are otherwise dated on the server from a vendored copy of [PeriodO](https://perio.do); perio.do is never contacted.
 
 The user's API key is stored encrypted with a server-side key held by the operator, who can therefore decrypt it. Nothing else is sent anywhere. The reference deployment runs on a rented server in the European Union, not in Turkey; that is a hosting choice, and the software runs unchanged wherever it is installed.
 
@@ -43,7 +45,7 @@ A model that returns a first `done` revision with a sensible chart is good enoug
 ## Using it
 
 1. **Settings.** Enter an OpenAI-compatible base URL and your API key; the model list loads from the provider, and prices fill in when the provider publishes them. Test the connection.
-2. **Datasets.** Upload a CSV, TSV, or xlsx. The worker reads it and the page shows how: encoding, delimiter, decimal mark, sheet, header row, and a typed profile of every column. Override the sheet or header row if needed. Choose what the model may see.
+2. **Datasets.** Upload a CSV, TSV, or xlsx. The worker reads it and the page shows how: encoding, delimiter, decimal mark, sheet, header row, and a typed profile of every column. Override the sheet or header row if needed. A text column of archaeological periods (`Helenistik`, `Early Bronze Age`, `EB II`, `MÖ 5. yüzyıl`, `1500 BC`) is recognised as a *period* column and charted oldest first instead of alphabetically. Names are dated from PeriodO for the region the column's labels point to, and the column table shows which published definition placed each value. There you can say what a value means (`ECh` is `Early Chalcolithic`, `Evre 7` is `720-650 BC`), point the column at the start and end year columns of your own data ("Dates from columns", also offered beside "Treat as periods"), type the whole order for site phases, ask your model about the values left unplaced, or switch it off. Choose what the model may see.
 3. **Charts.** On a dataset, pick the x, y, and optional colour columns, describe the chart, and create it. The page polls until the model has answered, renders the chart, and shows the specification and the exact request and response, with tokens and estimated cost.
 4. **Revise.** Change the request or the columns; the model also sees the previous specification. Switch between revisions, make any of them current, export PNG, SVG, or the spec, and download the reproducibility bundle.
 
@@ -53,7 +55,7 @@ CSV, TSV, and xlsx up to 20 MB, 100 000 rows, 200 columns. Text files are decode
 
 ## Generating a chart
 
-The worker builds a prompt from the versioned template in `backend/prompts/` (`p2026-09-a` today), the profile at the dataset's privacy level, the chosen fields, and the request. It asks the endpoint for a JSON object with a fixed seed, validates the answer against the vendored Vega-Lite v6 schema, replaces encodings that name unknown fields with the user's choice or drops them, strips anything that would carry data, and refuses layered or concatenated specs. One retry with the validation error appended, then `failed` with the reason. Endpoints that reject a parameter by name (OpenAI's newer models want `max_completion_tokens` and refuse a temperature) get it renamed or dropped, and the adjustment is recorded.
+The worker builds a prompt from the versioned template in `backend/prompts/` (`p2026-11-a` today), the profile at the dataset's privacy level, the chosen fields, and the request. It asks the endpoint for a JSON object with a fixed seed, validates the answer against the vendored Vega-Lite v6 schema, replaces encodings that name unknown fields with the user's choice or drops them, strips anything that would carry data, puts period columns in chronological order, and refuses layered or concatenated specs. One retry with the validation error appended, then `failed` with the reason. Endpoints that reject a parameter by name (OpenAI's newer models want `max_completion_tokens` and refuse a temperature) get it renamed or dropped, and the adjustment is recorded.
 
 ## Reproducibility
 
