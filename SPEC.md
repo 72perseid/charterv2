@@ -238,11 +238,15 @@ Design: keep the v1 tokens (teal primary `hsl(174 72% 45%)`, accent `hsl(174 60%
 
 The stack publishes exactly one port, the compose Caddy, bound to `127.0.0.1:8080`. Postgres, `api`, and `worker` sit on a compose-internal network and publish nothing. The `.env` value `CADDY_BIND` sets the published address; the example file uses `127.0.0.1:8080`, and an operator who wants the compose Caddy to own TLS directly sets it to `:80` and `:443` with a hostname in the Caddyfile.
 
-On the project VPS a Caddy service already owns 80 and 443 for another stack (a self-hosted Supabase, unrelated to Chart-er). Chart-er does not touch it beyond one site block appended to `/etc/caddy/Caddyfile`:
+On the project VPS a Caddy service already owns 80 and 443 for another stack (a self-hosted Supabase, unrelated to Chart-er). Chart-er does not touch it beyond two site blocks appended to `/etc/caddy/Caddyfile`:
 
 ```
-charter.72perseids.com {
+charter.tugcekoseoglu.com {
     reverse_proxy localhost:8080
+}
+
+charter.72perseids.com {
+    redir https://charter.tugcekoseoglu.com{uri} permanent
 }
 ```
 
@@ -333,6 +337,6 @@ Findings from v1 and where v2 closes them: unauthenticated functions and caller-
 | 5 | Default privacy level | `statistics`. |
 | 6 | Which providers are tested against | OpenAI and a local Ollama, both through the same OpenAI-compatible path. |
 | 7 | VPS size and provider | Confirmed: Contabo EU, 4 vCPU / 7.8 GB / 96 GB. Disclosed in the README. |
-| 8 | Domain name and TLS | Confirmed: `charter.72perseids.com`, TLS by the existing host Caddy. The A record moves off the v1 prototype after build step 1 passes on the VPS. |
+| 8 | Domain name and TLS | Confirmed: `charter.tugcekoseoglu.com` since 2026-11-19, TLS by the existing host Caddy. The earlier name `charter.72perseids.com` redirects to it. The A record moves off the v1 prototype after build step 1 passes on the VPS. |
 | 9 | Do old v1 users, uploads, or charts migrate | No. |
 | 10 | License and citation | MIT and a `CITATION.cff` naming the owner and the conference. |
