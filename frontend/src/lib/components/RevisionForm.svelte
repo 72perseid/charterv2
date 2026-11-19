@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { ApiError, charts, type ColumnProfile, type RevisionSummary } from '$lib/api';
+  import { ApiError, charts, type ColumnProfile, type RevisionSummary, type Show } from '$lib/api';
+  import IntentFields from '$lib/components/IntentFields.svelte';
   import { t } from '$lib/i18n';
 
   let {
@@ -15,6 +16,9 @@
   let y_field = $state('');
   let color_field = $state('');
   let prompt = $state('');
+  let show = $state<Show>('auto');
+  let filter_field = $state('');
+  let filter_value = $state('');
   let seededFrom = $state<number | null>(null);
   $effect(() => {
     if (seededFrom !== parent.id) {
@@ -22,6 +26,9 @@
       y_field = parent.y_field;
       color_field = parent.color_field ?? '';
       prompt = parent.prompt;
+      show = parent.show;
+      filter_field = parent.filter_field ?? '';
+      filter_value = parent.filter_value ?? '';
       seededFrom = parent.id;
     }
   });
@@ -39,7 +46,10 @@
         x_field,
         y_field,
         color_field: color_field || null,
-        prompt: prompt.trim()
+        prompt: prompt.trim(),
+        show,
+        filter_field: filter_field || null,
+        filter_value: filter_field ? filter_value.trim() : null
       });
       await goto(`/charts/${chartId}?revision=${revision.id}`, { invalidateAll: true });
     } catch (e) {
@@ -74,6 +84,7 @@
       </select>
     </div>
   </div>
+  <IntentFields {columns} prefix="rev_" bind:show bind:filter_field bind:filter_value />
   <div class="field">
     <label for="rprompt">{s.prompt}</label>
     <textarea id="rprompt" rows="3" maxlength="1000" required bind:value={prompt}></textarea>

@@ -19,6 +19,7 @@ from accounts.models import ModelConfig
 from charts.models import ChartRevision
 from datasets.profile import period_orders, profile_for_model
 from datasets.tasks import load_rows
+from generation.intent import FilterError, row_filter
 from generation.prompt import build_messages
 from generation.provider import ProviderError, ProviderResult, chat_completion
 from generation.validate import SpecError, validate_spec
@@ -55,7 +56,7 @@ def process_one_revision() -> bool:
     outcome = "done"
     try:
         generate(revision)
-    except (ProviderError, SpecError) as exc:
+    except (ProviderError, SpecError, FilterError) as exc:
         outcome = "failed"
         _fail(revision, str(exc))
     except Exception:
@@ -88,6 +89,8 @@ def generate(revision: ChartRevision) -> None:
     visible = profile_for_model(dataset.profile, dataset.privacy_level, frame)
     field_names = {c["name"] for c in dataset.profile["columns"]}
     parent = revision.parent
+    orders = period_orders(dataset.profile)
+    chosen_filter = row_filter(dataset.profile, revision.filter_field, revision.filter_value)
     api_key = decrypt(config.api_key_encrypted)
 
     revision.model = config.model
@@ -107,6 +110,9 @@ def generate(revision: ChartRevision) -> None:
             y_field=revision.y_field,
             color_field=revision.color_field,
             prompt=revision.prompt,
+            show=revision.show,
+            row_filter=chosen_filter,
+            period_orders=orders,
             parent_spec=parent.spec if parent and parent.spec else None,
             parent_prompt=parent.prompt if parent else None,
             retry_error=retry_error,
@@ -131,7 +137,9 @@ def generate(revision: ChartRevision) -> None:
                 x_field=revision.x_field,
                 y_field=revision.y_field,
                 color_field=revision.color_field,
-                period_orders=period_orders(dataset.profile),
+                period_orders=orders,
+                show=revision.show,
+                row_filter=chosen_filter,
             )
         except SpecError as exc:
             retry_error = str(exc)

@@ -21,6 +21,8 @@ from charts.schemas import (
     RevisionOut,
 )
 from datasets.models import Dataset
+from datasets.tasks import load_rows
+from generation.intent import SHOW, FilterError, occurs, row_filter
 from generation.tasks import estimate_cost
 
 router = Router(tags=["charts"])
@@ -63,7 +65,26 @@ def check_fields(dataset: Dataset, data: RevisionIn) -> str | None:
     for label, value in (("x", data.x_field), ("y", data.y_field), ("color", data.color_field)):
         if value and value not in names:
             return f"{label} field '{value}' is not a column of this dataset."
+    if data.show not in SHOW:
+        return "show must be one of: " + ", ".join(SHOW) + "."
+    if bool(data.filter_field) != bool((data.filter_value or "").strip()):
+        return "A filter needs both a column and a value."
+    try:
+        chosen = row_filter(dataset.profile, data.filter_field, data.filter_value)
+    except FilterError as exc:
+        return str(exc)
+    if chosen and not occurs(load_rows(dataset), chosen["field"], chosen["equal"]):
+        return f"No row has {chosen['field']} = {data.filter_value.strip()}."
     return None
+
+
+def intent(data: RevisionIn) -> dict:
+    """The choices made beside the request, as stored on the revision."""
+    return {
+        "show": data.show,
+        "filter_field": data.filter_field or None,
+        "filter_value": (data.filter_value or "").strip() or None,
+    }
 
 
 def rate_limited(user) -> bool:
@@ -104,6 +125,7 @@ def create_chart(request: HttpRequest, data: ChartIn):
             y_field=data.y_field,
             color_field=data.color_field or None,
             prompt=data.prompt.strip(),
+            **intent(data),
         )
     return 201, chart_out(own_chart(request, chart.pk))
 
@@ -173,6 +195,7 @@ def create_revision(request: HttpRequest, chart_id: int, data: RevisionIn):
             y_field=data.y_field,
             color_field=data.color_field or None,
             prompt=data.prompt.strip(),
+            **intent(data),
         )
     return 201, revision_out(revision, request.user)
 

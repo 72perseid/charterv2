@@ -16,6 +16,10 @@ from datasets.periodo import gazetteer
 TOP_VALUES = 5
 SAMPLE_ROWS = 10
 SAMPLE_SEED = 20260907
+# A top value longer than this is a sentence (a citation, a note, a link), not
+# a category: no chart groups or filters by it, and a few of them are a third
+# of the prompt. Such values stay in the profile and are not sent to the model.
+MODEL_VALUE_MAX = 40
 
 
 def _py(value: Any) -> Any:
@@ -172,6 +176,16 @@ def profile_for_model(profile: dict, privacy_level: str, frame: pd.DataFrame | N
     ]
     if privacy_level == "minimal":
         columns = [{k: v for k, v in c.items() if k in MINIMAL_KEYS} for c in columns]
+    for column in columns:
+        # The model must write `name`; an identical original_name only costs tokens.
+        if column.get("original_name") == column["name"]:
+            del column["original_name"]
+        if "top_values" in column:
+            short = [v for v in column["top_values"] if len(v["value"]) <= MODEL_VALUE_MAX]
+            if short:
+                column["top_values"] = short
+            else:
+                del column["top_values"]
     out = {
         "row_count": profile["row_count"],
         "column_count": profile["column_count"],

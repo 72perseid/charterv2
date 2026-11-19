@@ -89,6 +89,47 @@ def test_upload_rate_limit(user_client: CsrfClient, settings):
     assert upload(user_client, "3", b"a\n1\n", "c.csv").status_code == 429
 
 
+def add_example(client: Client, language: str):
+    return client.post(
+        "/api/datasets/example", {"language": language}, content_type="application/json"
+    )
+
+
+@pytest.mark.parametrize(
+    ("language", "period", "oldest", "undated", "weight"),
+    [
+        ("en", "Period", "Neolithic", "Mixed", "Weight (g)"),
+        ("tr", "Dönem", "Neolitik", "Karışık", "Ağırlık (g)"),
+    ],
+)
+def test_example_dataset_is_added_and_its_periods_are_ordered(
+    user_client: CsrfClient, language, period, oldest, undated, weight
+):
+    response = add_example(user_client, language)
+    assert response.status_code == 201, response.content
+    dataset_id = response.json()["id"]
+    process_one_dataset()
+
+    detail = user_client.get(f"/api/datasets/{dataset_id}").json()
+    assert detail["status"] == "done" and detail["row_count"] == 98
+    columns = {c["name"]: c for c in detail["profile"]["columns"]}
+    # Detected without a model: nine periods in order, the mixed fill last.
+    assert columns[period]["type"] == "period"
+    order = columns[period]["order"]
+    assert len(order) == 10 and order[0] == oldest and order[-1] == undated
+    assert columns[weight]["type"] == "number"  # decimal commas in the Turkish file
+
+
+def test_example_dataset_counts_towards_the_upload_limit(user_client: CsrfClient, settings):
+    settings.RATE_UPLOADS_PER_HOUR = 1
+    assert add_example(user_client, "en").status_code == 201
+    assert add_example(user_client, "en").status_code == 429
+
+
+def test_example_dataset_requires_auth(csrf_client: CsrfClient):
+    assert add_example(csrf_client, "en").status_code == 401
+
+
 def test_xlsx_sheet_override_reingests(user_client: CsrfClient, tmp_path: Path):
     content = workbook_with_title_row(tmp_path / "book.xlsx").read_bytes()
     dataset_id = upload(user_client, "book", content, "book.xlsx").json()["id"]

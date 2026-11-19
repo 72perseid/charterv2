@@ -240,6 +240,8 @@ export const modelConfig = {
     })
 };
 
+export type Show = 'auto' | 'total' | 'average' | 'count' | 'distribution' | 'points';
+
 export type RevisionSummary = {
   id: number;
   revision_no: number;
@@ -248,6 +250,9 @@ export type RevisionSummary = {
   y_field: string;
   color_field: string | null;
   prompt: string;
+  show: Show;
+  filter_field: string | null;
+  filter_value: string | null;
   status: Status;
   error_message: string | null;
   model: string;
@@ -299,6 +304,10 @@ export type RevisionFields = {
   y_field: string;
   color_field: string | null;
   prompt: string;
+  // Chosen beside the request: what the chart shows, and one optional row filter.
+  show?: Show;
+  filter_field?: string | null;
+  filter_value?: string | null;
 };
 
 export const charts = {
@@ -327,6 +336,9 @@ export const datasets = {
     body.append('name', name);
     return request<DatasetDetail>('/datasets', { method: 'POST', body });
   },
+  // Adds the example dataset that ships with Chart-er (invented rows).
+  example: (language: string) =>
+    request<DatasetDetail>('/datasets/example', { method: 'POST', body: { language } }),
   patch: (
     id: number,
     fields: {

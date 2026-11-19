@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { ApiError, charts, type ColumnProfile, type PrivacyLevel } from '$lib/api';
+  import { ApiError, charts, type ColumnProfile, type PrivacyLevel, type Show } from '$lib/api';
+  import IntentFields from '$lib/components/IntentFields.svelte';
   import { t } from '$lib/i18n';
 
   let {
@@ -16,6 +17,9 @@
   let y_field = $state('');
   let color_field = $state('');
   let prompt = $state('');
+  let show = $state<Show>('auto');
+  let filter_field = $state('');
+  let filter_value = $state('');
   let error = $state('');
   let busy = $state(false);
 
@@ -35,7 +39,10 @@
         x_field,
         y_field,
         color_field: color_field || null,
-        prompt: prompt.trim()
+        prompt: prompt.trim(),
+        show,
+        filter_field: filter_field || null,
+        filter_value: filter_field ? filter_value.trim() : null
       });
       await goto(`/charts/${chart.id}`);
     } catch (e) {
@@ -75,6 +82,7 @@
       </select>
     </div>
   </div>
+  <IntentFields {columns} prefix="new_" bind:show bind:filter_field bind:filter_value />
   <div class="field">
     <label for="prompt">{s.prompt}</label>
     <textarea id="prompt" rows="3" maxlength="1000" required bind:value={prompt}></textarea>

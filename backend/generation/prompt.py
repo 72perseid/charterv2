@@ -12,6 +12,8 @@ from pathlib import Path
 
 from django.conf import settings
 
+from generation.intent import AUTO, SHOW
+
 
 @dataclass(frozen=True)
 class Template:
@@ -35,6 +37,39 @@ def _section(text: str, heading: str) -> str:
     return (rest if end == -1 else rest[:end]).strip()
 
 
+def render_profile(profile: dict) -> str:
+    """The profile as JSON with one column, and one sample row, per line: still
+    one valid JSON object, at roughly half the tokens of an indented one."""
+
+    def lines(items: list) -> str:
+        return "[\n " + ",\n ".join(json.dumps(i, ensure_ascii=False) for i in items) + "\n]"
+
+    parts = [f'"{key}": {json.dumps(profile[key])}' for key in ("row_count", "column_count")]
+    parts.append('"columns": ' + lines(profile["columns"]))
+    if "sample_rows" in profile:
+        parts.append('"sample_rows": ' + lines(profile["sample_rows"]))
+    return "{" + ", ".join(parts) + "}"
+
+
+def spec_for_revision(spec: dict, period_orders: dict[str, list[str]]) -> dict:
+    """The parent spec as the model needs it. The chronological sort list of a
+    period column is put back by the server after every answer, so it is left
+    out here ("descending" stands for a newest-first list): for a column with
+    many periods it would otherwise be most of the message."""
+    out = json.loads(json.dumps(spec))
+    for definition in (out.get("encoding") or {}).values():
+        if not isinstance(definition, dict) or not isinstance(definition.get("sort"), list):
+            continue
+        order = period_orders.get(definition.get("field"))
+        if not order:
+            continue
+        if definition["sort"] == list(reversed(order)) != list(order):
+            definition["sort"] = "descending"
+        else:
+            del definition["sort"]
+    return out
+
+
 def build_messages(
     *,
     profile_for_model: dict,
@@ -42,6 +77,9 @@ def build_messages(
     y_field: str,
     color_field: str | None,
     prompt: str,
+    show: str = AUTO,
+    row_filter: dict | None = None,
+    period_orders: dict[str, list[str]] | None = None,
     parent_spec: dict | None = None,
     parent_prompt: str | None = None,
     retry_error: str | None = None,
@@ -54,14 +92,22 @@ def build_messages(
             "Previous request: "
             + (parent_prompt or "")
             + "\nPrevious specification (JSON):\n"
-            + json.dumps(parent_spec, ensure_ascii=False, indent=1)
+            + json.dumps(
+                spec_for_revision(parent_spec, period_orders or {}), ensure_ascii=False, indent=1
+            )
             + "\n\n"
         )
     user = template.user.format(
-        profile=json.dumps(profile_for_model, ensure_ascii=False, indent=1),
+        profile=render_profile(profile_for_model),
         x_field=x_field,
         y_field=y_field,
         color_field=color_field or "(none)",
+        show=SHOW[show],
+        row_filter=(
+            f"{row_filter['field']} = {json.dumps(row_filter['equal'], ensure_ascii=False)}"
+            if row_filter
+            else "(all rows)"
+        ),
         revision_block=revision_block,
         prompt=prompt.strip(),
     )

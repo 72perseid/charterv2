@@ -67,6 +67,47 @@ def set_key(client, stub, key, **extra):
     )
 
 
+def test_show_and_filter_are_checked_stored_and_applied(ready, stub):
+    client, dataset_id = ready
+    bad = [
+        ({"show": "histogram"}, "show must be one of"),
+        ({"filter_field": "Alan"}, "both a column and a value"),
+        ({"filter_field": "Yok", "filter_value": "x"}, "is not a column"),
+        ({"filter_field": "Tarih", "filter_value": "2019"}, "is a date column"),
+        ({"filter_field": "Sayı", "filter_value": "çok"}, "holds numbers"),
+        ({"filter_field": "Alan", "filter_value": "Açma Z"}, "No row has Alan = Açma Z"),
+    ]
+    for fields, message in bad:
+        response = create_chart(client, dataset_id, **fields)
+        assert response.status_code == 400 and message in response.json()["detail"], fields
+
+    chosen = {"show": "average", "filter_field": "Alan", "filter_value": " Açma A "}
+    response = create_chart(client, dataset_id, **chosen)
+    assert response.status_code == 201, response.content
+    revision_id = response.json()["revisions"][0]["id"]
+    process_one_revision()
+
+    revision = client.get(f"/api/revisions/{revision_id}").json()
+    assert revision["status"] == "done", revision["error_message"]
+    assert (revision["show"], revision["filter_value"]) == ("average", "Açma A")
+    # The stub answers with a sum and no filter; the choices win and are recorded.
+    assert revision["spec"]["encoding"]["y"]["aggregate"] == "mean"
+    assert revision["spec"]["transform"] == [{"filter": {"field": "Alan", "equal": "Açma A"}}]
+    assert revision["corrections"] == [
+        'y: aggregate set to "mean", as chosen (average)',
+        'filter set to "Alan" = "Açma A", as chosen',
+    ]
+    message = revision["request"]["messages"][1]["content"]
+    assert 'show: average: "aggregate": "mean" inside the y channel' in message
+    assert 'only rows where: Alan = "Açma A"' in message
+
+    # A number column is filtered with a number, not with its text.
+    numeric = create_chart(client, dataset_id, filter_field="Sayı", filter_value="3")
+    process_one_revision()
+    spec = client.get(f"/api/revisions/{numeric.json()['revisions'][0]['id']}").json()["spec"]
+    assert spec["transform"] == [{"filter": {"field": "Sayı", "equal": 3}}]
+
+
 def test_chart_needs_model_config(user_client: CsrfClient):
     response = create_chart(user_client, 1)
     assert response.status_code == 400
@@ -99,7 +140,7 @@ def test_create_chart_makes_revision_1_and_worker_finishes_it(ready, stub):
     assert revision["request"]["parameters"]["seed"] == 1
     assert revision["response_text"].startswith("{")
     assert revision["model"] == "stub" and revision["endpoint_host"] == "127.0.0.1"
-    assert revision["prompt_version"] == "p2026-11-a"
+    assert revision["prompt_version"] == "p2026-11-b"
     assert revision["usage"]["total_tokens"] == 19
     assert revision["usage"]["reasoning_tokens"] == 3
     assert revision["cost_usd"] is None  # no prices entered
@@ -180,7 +221,7 @@ def test_provider_401_fails_with_actionable_message(ready, stub):
     assert "check your API key" in revision["error_message"]
     # The record is kept even when the endpoint never answered usefully.
     assert revision["model"] == "stub" and revision["endpoint_host"] == "127.0.0.1"
-    assert revision["prompt_version"] == "p2026-11-a" and revision["duration_ms"] is not None
+    assert revision["prompt_version"] == "p2026-11-b" and revision["duration_ms"] is not None
 
 
 def test_second_revision_gets_parent_spec_in_prompt(ready, stub):
@@ -326,7 +367,7 @@ def test_export_bundle_holds_the_whole_record(ready, stub):
     assert "Previous specification" in second["request"]["messages"][1]["content"]
     assert second["response_text"].startswith("{")
     assert second["cost_usd"] == pytest.approx(12 * 1e-6 + 7 * 2e-6)
-    assert second["prompt_version"] == "p2026-11-a"
+    assert second["prompt_version"] == "p2026-11-b"
 
     other = CsrfClient(enforce_csrf_checks=True)
     other.get("/api/auth/csrf")

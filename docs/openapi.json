@@ -6,6 +6,39 @@
   "description": ""
  },
  "paths": {
+  "/api/health": {
+   "get": {
+    "operationId": "charter_api_health",
+    "summary": "Health",
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Health"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Service Unavailable",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Health"
+        }
+       }
+      }
+     }
+    },
+    "description": "Whether this server can answer, and which build it runs. `version` is\nthe git commit the image was built from. Open to anyone: it is what a\ndeploy or a monitor asks before trusting the rest.",
+    "tags": [
+     "health"
+    ]
+   }
+  },
   "/api/auth/csrf": {
    "get": {
     "operationId": "accounts_api_csrf",
@@ -431,6 +464,54 @@
         ],
         "title": "MultiPartBodyParams",
         "type": "object"
+       }
+      }
+     },
+     "required": true
+    },
+    "security": [
+     {
+      "SessionAuth": []
+     }
+    ]
+   }
+  },
+  "/api/datasets/example": {
+   "post": {
+    "operationId": "datasets_api_add_example_dataset",
+    "summary": "Add Example Dataset",
+    "parameters": [],
+    "responses": {
+     "201": {
+      "description": "Created",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DatasetDetail"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "Too Many Requests",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Detail"
+        }
+       }
+      }
+     }
+    },
+    "description": "Add the example dataset that ships with Chart-er to the user's own\ndatasets. From there it is an upload like any other: parsed by the worker,\neditable, deletable. The rows are invented; see datasets/examples/README.md.",
+    "tags": [
+     "datasets"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ExampleRequest"
        }
       }
      },
@@ -1084,6 +1165,24 @@
  },
  "components": {
   "schemas": {
+   "Health": {
+    "properties": {
+     "status": {
+      "title": "Status",
+      "type": "string"
+     },
+     "version": {
+      "title": "Version",
+      "type": "string"
+     }
+    },
+    "required": [
+     "status",
+     "version"
+    ],
+    "title": "Health",
+    "type": "object"
+   },
    "UserOut": {
     "properties": {
      "id": {
@@ -1558,6 +1657,17 @@
     "title": "DatasetDetail",
     "type": "object"
    },
+   "ExampleRequest": {
+    "properties": {
+     "language": {
+      "default": "en",
+      "title": "Language",
+      "type": "string"
+     }
+    },
+    "title": "ExampleRequest",
+    "type": "object"
+   },
    "DatasetPatch": {
     "properties": {
      "name": {
@@ -1957,6 +2067,32 @@
       "title": "Prompt",
       "type": "string"
      },
+     "show": {
+      "title": "Show",
+      "type": "string"
+     },
+     "filter_field": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filter Field"
+     },
+     "filter_value": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filter Value"
+     },
      "status": {
       "title": "Status",
       "type": "string"
@@ -2012,6 +2148,9 @@
      "y_field",
      "color_field",
      "prompt",
+     "show",
+     "filter_field",
+     "filter_value",
      "status",
      "error_message",
      "model",
@@ -2064,6 +2203,35 @@
       "minLength": 1,
       "title": "Prompt",
       "type": "string"
+     },
+     "show": {
+      "default": "auto",
+      "title": "Show",
+      "type": "string"
+     },
+     "filter_field": {
+      "anyOf": [
+       {
+        "maxLength": 200,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filter Field"
+     },
+     "filter_value": {
+      "anyOf": [
+       {
+        "maxLength": 200,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filter Value"
      },
      "dataset_id": {
       "title": "Dataset Id",
@@ -2162,6 +2330,32 @@
      "prompt": {
       "title": "Prompt",
       "type": "string"
+     },
+     "show": {
+      "title": "Show",
+      "type": "string"
+     },
+     "filter_field": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filter Field"
+     },
+     "filter_value": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filter Value"
      },
      "status": {
       "title": "Status",
@@ -2346,6 +2540,9 @@
      "y_field",
      "color_field",
      "prompt",
+     "show",
+     "filter_field",
+     "filter_value",
      "status",
      "attempts",
      "error_message",
@@ -2412,6 +2609,35 @@
       "minLength": 1,
       "title": "Prompt",
       "type": "string"
+     },
+     "show": {
+      "default": "auto",
+      "title": "Show",
+      "type": "string"
+     },
+     "filter_field": {
+      "anyOf": [
+       {
+        "maxLength": 200,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filter Field"
+     },
+     "filter_value": {
+      "anyOf": [
+       {
+        "maxLength": 200,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filter Value"
      }
     },
     "required": [

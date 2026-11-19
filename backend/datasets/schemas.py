@@ -50,6 +50,11 @@ class DatasetPatch(Schema):
     period_dates: dict[str, PeriodDates | None] | None = None
 
 
+class ExampleRequest(Schema):
+    # The interface language; decides which copy of the example is added.
+    language: str = "en"
+
+
 class PeriodQuestion(Schema):
     column: str
 

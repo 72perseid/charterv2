@@ -10,6 +10,7 @@ from ninja import File, Form, Router, UploadedFile
 
 from accounts.models import ModelConfig
 from datasets.chronology import MAX_DISTINCT
+from datasets.examples import EXAMPLES
 from datasets.ingest import IngestError, kind_of
 from datasets.models import Dataset
 from datasets.profile import rows_as_records
@@ -18,6 +19,7 @@ from datasets.schemas import (
     DatasetOut,
     DatasetPatch,
     Detail,
+    ExampleRequest,
     PeriodQuestion,
     RowsOut,
 )
@@ -39,11 +41,36 @@ def list_datasets(request: HttpRequest):
     return Dataset.objects.filter(user=request.user)
 
 
-@router.post("", response={201: DatasetDetail, 400: Detail, 413: Detail, 429: Detail})
-def upload_dataset(request: HttpRequest, file: File[UploadedFile], name: Form[str] = ""):
+def upload_limit_reached(request: HttpRequest) -> bool:
     since = timezone.now() - timedelta(hours=1)
     recent = Dataset.objects.filter(user=request.user, created_at__gte=since).count()
-    if recent >= settings.RATE_UPLOADS_PER_HOUR:
+    return recent >= settings.RATE_UPLOADS_PER_HOUR
+
+
+def store(request: HttpRequest, name: str, filename: str, size: int, chunks) -> Dataset:
+    """Create the dataset row and write its original file. The worker parses it."""
+    with transaction.atomic():
+        dataset = Dataset.objects.create(
+            user=request.user,
+            name=name.strip()[:200],
+            original_filename=filename,
+            original_path="",
+            size_bytes=size,
+        )
+        directory = dataset_dir(request.user.id, dataset.pk)
+        directory.mkdir(parents=True, exist_ok=True)
+        original = directory / f"{ORIGINAL_STEM}{Path(filename).suffix.lower()}"
+        with original.open("wb") as out:
+            for chunk in chunks:
+                out.write(chunk)
+        dataset.original_path = str(original)
+        dataset.save(update_fields=["original_path"])
+    return dataset
+
+
+@router.post("", response={201: DatasetDetail, 400: Detail, 413: Detail, 429: Detail})
+def upload_dataset(request: HttpRequest, file: File[UploadedFile], name: Form[str] = ""):
+    if upload_limit_reached(request):
         return 429, {"detail": "Upload limit reached. Try again in an hour."}
 
     filename = Path(file.name or "upload").name
@@ -55,24 +82,20 @@ def upload_dataset(request: HttpRequest, file: File[UploadedFile], name: Form[st
         limit_mb = settings.UPLOAD_MAX_BYTES // (1024 * 1024)
         return 413, {"detail": f"The file is larger than {limit_mb} MB."}
 
-    extension = Path(filename).suffix.lower()
-    with transaction.atomic():
-        dataset = Dataset.objects.create(
-            user=request.user,
-            name=(name or Path(filename).stem).strip()[:200],
-            original_filename=filename,
-            original_path="",
-            size_bytes=file.size,
-        )
-        directory = dataset_dir(request.user.id, dataset.pk)
-        directory.mkdir(parents=True, exist_ok=True)
-        original = directory / f"{ORIGINAL_STEM}{extension}"
-        with original.open("wb") as out:
-            for chunk in file.chunks():
-                out.write(chunk)
-        dataset.original_path = str(original)
-        dataset.save(update_fields=["original_path"])
-    return 201, dataset
+    name = name or Path(filename).stem
+    return 201, store(request, name, filename, file.size, file.chunks())
+
+
+@router.post("/example", response={201: DatasetDetail, 429: Detail})
+def add_example_dataset(request: HttpRequest, data: ExampleRequest):
+    """Add the example dataset that ships with Chart-er to the user's own
+    datasets. From there it is an upload like any other: parsed by the worker,
+    editable, deletable. The rows are invented; see datasets/examples/README.md."""
+    if upload_limit_reached(request):
+        return 429, {"detail": "Upload limit reached. Try again in an hour."}
+    example = EXAMPLES.get(data.language, EXAMPLES["en"])
+    content = example.path.read_bytes()
+    return 201, store(request, example.name, example.path.name, len(content), [content])
 
 
 @router.get("/{dataset_id}", response=DatasetDetail)

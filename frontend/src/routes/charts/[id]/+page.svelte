@@ -87,7 +87,7 @@
     <h1>{chart.title}</h1>
     <p class="meta">
       {s.dataset}: <a href="/datasets/{chart.dataset_id}">{chart.dataset_name}</a>
-      {#if rev}· {s.revision} {rev.revision_no} · {rev.x_field} × {rev.y_field}{#if rev.color_field} · {rev.color_field}{/if}{/if}
+      {#if rev}· {s.revision} {rev.revision_no} · {rev.x_field} × {rev.y_field}{#if rev.color_field} · {rev.color_field}{/if}{#if rev.show !== 'auto'} · {t.charts.form.shows[rev.show]}{/if}{#if rev.filter_field} · {rev.filter_field} = {rev.filter_value}{/if}{/if}
     </p>
   </div>
   <div class="head-actions">

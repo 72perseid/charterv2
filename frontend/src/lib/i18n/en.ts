@@ -30,7 +30,11 @@ export const en = {
   datasets: {
     title: 'Datasets',
     upload: 'Upload',
-    empty: 'No datasets yet. Upload a CSV or Excel file to begin.',
+    empty: 'No datasets yet. Upload a CSV or Excel file to begin, or try the example.',
+    example: 'Try an example',
+    exampleTitle:
+      'Adds a small table of finds by period to your datasets. The rows are invented. No model or key is needed to look at it.',
+    exampleAdding: 'Adding…',
     columns: { name: 'Name', rows: 'Rows', columns: 'Columns', status: 'Status', created: 'Created' },
     uploadForm: {
       title: 'Upload a dataset',
@@ -154,6 +158,20 @@ export const en = {
       y: 'Y axis',
       color: 'Color (optional)',
       none: '— none —',
+      show: 'What to show',
+      shows: {
+        auto: 'Let the model decide',
+        total: 'Total (sum)',
+        average: 'Average',
+        count: 'Number of rows',
+        distribution: 'Distribution (box plot)',
+        points: 'Every row as a point'
+      },
+      showHint:
+        'Whatever you choose here is applied to the chart itself, whatever the model answers. Measurements such as lengths are a distribution or an average, not a total.',
+      filterField: 'Only rows where (optional)',
+      filterAll: '— all rows —',
+      filterValue: 'equals',
       prompt: 'Describe the chart',
       promptHint: 'For example: total finds per area as bars, or weight over time as a line.',
       privacyNote: 'The model will see: {level}.',

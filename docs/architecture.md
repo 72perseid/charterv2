@@ -19,7 +19,7 @@ gunicorn ──── PostgreSQL 16 ◄──── worker (manage.py runworker)
 
 **Upload.** `POST /api/datasets` stores the original file under `DATA_DIR/{user}/{dataset}/` and inserts a row with status `pending`. The worker claims it with `SELECT … FOR UPDATE SKIP LOCKED`, parses it (`datasets/ingest.py`), marks period columns and works out their chronological order from the vendored PeriodO snapshot (`datasets/chronology.py`, `datasets/periodo.py`), writes `parsed.parquet`, computes the profile (`datasets/profile.py`), and sets `done` or `failed` with a message.
 
-**Chart.** `POST /api/charts` inserts a chart and its revision 1 (`pending`). The worker claims the revision, builds the prompt from `backend/prompts/{version}.md` and the profile at the dataset's privacy level (`generation/prompt.py`), calls `{base_url}/chat/completions` once (`generation/provider.py`), validates the answer (`generation/validate.py`), retries once with the error appended, and stores the full record. The browser polls `GET /api/revisions/{id}` every two seconds.
+**Chart.** `POST /api/charts` inserts a chart and its revision 1 (`pending`). The worker claims the revision, builds the prompt from `backend/prompts/{version}.md` and the profile at the dataset's privacy level (`generation/prompt.py`), calls `{base_url}/chat/completions` once (`generation/provider.py`), validates the answer and applies what the user chose in the form (`generation/validate.py`, `generation/intent.py`), retries once with the error appended, and stores the full record. The browser polls `GET /api/revisions/{id}` every two seconds.
 
 **Render.** The stored spec has `data: {name: "main"}` and no values. The browser fetches rows from `GET /api/datasets/{id}/rows` and hands both to vega-embed.
 

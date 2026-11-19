@@ -125,6 +125,8 @@ ChartRevision
   revision_no int · parent FK null (set null)        -- unique (chart, revision_no)
   x_field text · y_field text · color_field text null
   prompt text (≤ 1000 chars)
+  show text default 'auto'                           -- auto | total | average | count | distribution | points
+  filter_field text null · filter_value text null    -- one optional "only rows where field = value"
   status text default 'pending'                      -- pending | running | done | failed
   attempts int default 0 · error_message text null
   spec jsonb null                                    -- validated Vega-Lite v6, data: {name: 'main'}
@@ -169,14 +171,16 @@ What reaches the model by `privacy_level`:
 | `statistics` (default) | minimal + numeric/date ranges + top categorical values |
 | `sample` | statistics + 10 rows chosen with a fixed seed |
 
+At every level two things are left out because they only cost tokens (since `p2026-11-b`): `original_name` when it equals `name`, and any top value longer than 40 characters. Such a value is a citation, a note or a link, not a category a chart groups or filters by; in the dataset that prompted this, three reference columns were a third of the request. The profile is written with one column per line instead of indented. Together this took that request from about 4 600 tokens to 2 900, which matters because a local model server may cut a request that does not fit its context window without saying so (README, *Running with a local model*).
+
 The level is shown next to the prompt box every time, with a one-line description of what it means.
 
 ### 6.3 Generation (worker, on revision)
 
 1. Claim: `UPDATE chart_revisions SET status='running', attempts=attempts+1, started_at=now() WHERE id = (SELECT id FROM chart_revisions WHERE status='pending' ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *`.
-2. Build messages from the template in `prompts/{prompt_version}.md`: system rules (§13), the profile at the dataset's privacy level, x/y/color fields, the user's prompt, and for revisions > 1 the parent's spec JSON and prompt.
+2. Build messages from the template in `prompts/{prompt_version}.md`: system rules (§13), the profile at the dataset's privacy level, x/y/color fields, the two choices made beside the request (`show` and the row filter, `generation/intent.py`), the user's prompt, and for revisions > 1 the parent's spec JSON and prompt. The parent's spec is sent without the chronological sort list of a period column (`"descending"` stands for a newest-first list), since step 4 puts it back.
 3. Call the user's endpoint with `temperature` from `ModelConfig`, `response_format: json_object` when the provider accepts it, `seed` when it accepts it. Timeout 90 s.
-4. Parse: strip code fences, `json.loads`. Validate: object; `$schema` is Vega-Lite v6; has `mark` and `encoding`; every `encoding.*.field` exists in the profile (else replace with the user's selection and record the correction); force `data = {name: 'main'}`; delete `datasets`, `transform[].url`, any `values`; reject `layer`, `concat`, `repeat`, `facet` in v2. A channel that encodes a `period` column gets `type: ordinal` and `sort` set to the profile's order, recorded as a correction; `sort: "descending"` becomes newest first, and a sort by another measure (`"-y"`, a field) is left as the model wrote it. Then `jsonschema.validate` against the vendored schema.
+4. Parse: strip code fences, `json.loads`. Validate: object; `$schema` is Vega-Lite v6; has `mark` and `encoding`; every `encoding.*.field` exists in the profile: one unknown field is replaced with the user's selection and the correction recorded, but an answer whose x and y are both unknown, or that names no real field at all, is rejected, because it was not written for this dataset and repairing it would present a chart nobody asked for as done; force `data = {name: 'main'}`; delete `datasets`, `transform[].url`, any `values`; reject `layer`, `concat`, `repeat`, `facet` in v2. A channel that encodes a `period` column gets `type: ordinal` and `sort` set to the profile's order, recorded as a correction; `sort: "descending"` becomes newest first, and a sort by another measure (`"-y"`, a field) is left as the model wrote it. A `transform` filter may only name fields of the profile (else rejected); a condition with a field and nothing to compare it with is dropped and recorded. The user's choices are then applied and recorded: `show` sets or removes the aggregate on y and, for `distribution` and `points`, the mark (`boxplot`, `point`); the chosen row filter stands in `transform` exactly once, replacing any filter the model wrote on that field. Then `jsonschema.validate` against the vendored schema; the error reported, and fed back on the retry, is the most specific one, not the top-level "matches no chart kind".
 5. On validation failure: one retry with the validation error appended to the conversation. On second failure or any provider error: `failed` with a message a user can act on (`"Model returned text that is not JSON"`, `"Endpoint returned 401: check your API key"`).
 6. Persist the full record (§5), set `done`, set `chart.current_revision` if this is the newest.
 
@@ -194,14 +198,16 @@ All under `/api`, session-cookie auth, CSRF header on unsafe methods, JSON in an
 
 | Method and path | Purpose |
 |---|---|
+| `GET /health` | `{status, version}`, no login. `version` is the git commit the image was built from; 503 when the database does not answer. What a deploy or a monitor asks first |
 | `POST /auth/register` `POST /auth/login` `POST /auth/logout` `GET /auth/me` | accounts |
 | `GET/PUT /me/model-config` · `POST /me/model-config/test` | BYOK settings; test makes one tiny call and reports the result |
 | `GET /datasets` · `POST /datasets` (multipart) · `GET /datasets/{id}` · `PATCH /datasets/{id}` (name, privacy_level, sheet, header_row, periods, period_mappings, period_dates) · `DELETE /datasets/{id}` | datasets; POST returns immediately with status `pending` |
+| `POST /datasets/example` `{language}` | copies the example dataset that ships with Chart-er (`datasets/examples/`, invented rows, one file per interface language) into the user's datasets; from there it is an upload like any other and counts towards the upload limit |
 | `POST /datasets/{id}/periods/ask` `{column}` | asks the user's model about the unplaced values of one period column (§6.1 step 6); the only request besides chart generation that sends anything to the model |
 | `GET /datasets/{id}/rows?limit&offset` | parsed rows for the table view and for vega |
 | `GET /datasets/{id}/download` | original file |
-| `GET /charts` · `POST /charts` `{dataset_id, title, x_field, y_field, color_field, prompt}` · `GET /charts/{id}` · `PATCH /charts/{id}` (title, current_revision) · `DELETE /charts/{id}` | charts; POST creates revision 1 |
-| `POST /charts/{id}/revisions` `{parent_id, x_field, y_field, color_field, prompt}` · `GET /revisions/{id}` | revisions; GET is the poll target |
+| `GET /charts` · `POST /charts` `{dataset_id, title, x_field, y_field, color_field, prompt, show, filter_field, filter_value}` · `GET /charts/{id}` · `PATCH /charts/{id}` (title, current_revision) · `DELETE /charts/{id}` | charts; POST creates revision 1. `show` and the filter are optional; a filter value that no row has is a 400 |
+| `POST /charts/{id}/revisions` `{parent_id, x_field, y_field, color_field, prompt, show, filter_field, filter_value}` · `GET /revisions/{id}` | revisions; GET is the poll target |
 | `GET /charts/{id}/export` | reproducibility bundle: dataset profile, parse options, every revision with request and response |
 
 Errors are `{"detail": "..."}` with the right status. Delete cascades in the database and removes the dataset directory on disk in the same request.
@@ -320,7 +326,7 @@ chart-er/
 
 ## 13. Carried over from v1
 
-Prompt rules (they worked; `p2026-11-a` adds that a `period` field is ordinal and is sorted by the server): output JSON only; use the provided types, do not guess from values; add a color encoding when the request says group, by, per, or color, or when a color field is given; temporal x gets `timeUnit` and an axis format; categorical x with quantitative y defaults to `aggregate: sum` unless the request asks for raw points; fallbacks: temporal → line, nominal → bar, both quantitative → point; no `layer`, `concat`, `repeat`, `facet`.
+Prompt rules (they worked; `p2026-11-a` adds that a `period` field is ordinal and is sorted by the server): output JSON only; use the provided types, do not guess from values; add a color encoding when the request says group, by, per, or color, or when a color field is given; temporal x gets `timeUnit` and an axis format; categorical x with quantitative y defaults to `aggregate: sum` unless the request asks for raw points; fallbacks: temporal → line, nominal → bar, both quantitative → point; no `layer`, `concat`, `repeat`, `facet`. `p2026-11-b` (2026-11-20) changes the default: only amounts that add up (counts, weights) are summed; a measurement of single things, or a request for a distribution, is a box plot with no aggregate. It also allows one transform, a filter on a field of the profile, when the request or the form limits the chart to part of the data. Both came from a real dataset of bone measurements, where every chart was a sum of lengths.
 
 Findings from v1 and where v2 closes them: unauthenticated functions and caller-supplied user ids (§7, session auth on every route); public bucket (§2 file storage); HTML from the model (§2 chart storage); status case mismatch and stuck jobs (§5 status enum, `attempts`, `error_message`); revisions that never saw the data (§6.3 profile in every prompt); incomplete deletion (§7 delete); undocumented access rules (§5 last paragraph); free-text axes (§8 selects from the profile); two clients and duplicated shell (§8 one `api.ts`, one `AppShell`).
 

@@ -1,12 +1,18 @@
 """Snapshot the rendered prompt per version and privacy level (SPEC §10).
 Delete a snapshot file to regenerate it after an intentional prompt change."""
 
+import json
 from pathlib import Path
 
 import pytest
 
 from datasets.profile import profile_for_model
-from generation.prompt import build_messages, load_template
+from generation.prompt import (
+    build_messages,
+    load_template,
+    render_profile,
+    spec_for_revision,
+)
 
 SNAPSHOTS = Path(__file__).parent / "snapshots"
 
@@ -129,3 +135,73 @@ def test_period_order_stays_on_the_server():
     )
     assert '"type": "period"' in text and 'period is "ordinal"' in text
     assert "Helenistik" not in text and "order_source" not in text
+
+
+def test_profile_is_sent_one_column_per_line_without_long_text():
+    profile = {
+        "row_count": 2,
+        "column_count": 2,
+        "columns": [
+            {
+                "name": "Reference",
+                "original_name": "Reference",
+                "type": "string",
+                "null_count": 0,
+                "distinct_count": 2,
+                "top_values": [
+                    {
+                        "value": "Halstead, P. 2011. Farming and feasting in the Neolithic",
+                        "count": 3,
+                    },
+                    {"value": "this volume", "count": 2},
+                ],
+            },
+            {
+                "name": "gl",
+                "original_name": "GL (mm)",
+                "type": "number",
+                "null_count": 0,
+                "distinct_count": 2,
+            },
+        ],
+    }
+    visible = profile_for_model(profile, "statistics")
+    reference, gl = visible["columns"]
+    assert reference["top_values"] == [{"value": "this volume", "count": 2}]
+    assert "original_name" not in reference and gl["original_name"] == "GL (mm)"
+    assert profile["columns"][0]["top_values"][0]["value"].startswith("Halstead")  # not mutated
+
+    text = render_profile(visible)
+    assert json.loads(text) == visible
+    assert text.count("\n") == 3  # the opening line, two columns, the closing line
+
+
+def test_revision_block_leaves_out_the_period_sort_list():
+    orders = {"Dönem": ["Demir Çağı", "Helenistik", "Roma"]}
+    parent = {
+        "mark": "bar",
+        "encoding": {
+            "x": {"field": "Dönem", "type": "ordinal", "sort": list(orders["Dönem"])},
+            "y": {"field": "Sayı", "type": "quantitative", "sort": ["b", "a"]},
+        },
+    }
+    out = spec_for_revision(parent, orders)
+    assert "sort" not in out["encoding"]["x"]
+    assert out["encoding"]["y"]["sort"] == ["b", "a"]  # not a period column: left alone
+    assert parent["encoding"]["x"]["sort"] == orders["Dönem"]  # the stored spec is untouched
+    parent["encoding"]["x"]["sort"].reverse()
+    assert spec_for_revision(parent, orders)["encoding"]["x"]["sort"] == "descending"
+
+
+def test_show_and_filter_are_stated_in_the_user_message():
+    text = build_messages(
+        profile_for_model=profile_for_model(PROFILE, "minimal"),
+        x_field="Dönem",
+        y_field="Sayı",
+        color_field=None,
+        prompt="x",
+        show="distribution",
+        row_filter={"field": "Alan", "equal": "Açma A"},
+    )[1]["content"]
+    assert 'show: distribution: mark "boxplot", y not aggregated' in text
+    assert 'only rows where: Alan = "Açma A"' in text

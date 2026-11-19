@@ -13,7 +13,8 @@ from pathlib import Path
 
 from django.conf import settings
 from jsonschema import Draft7Validator
-from jsonschema.exceptions import best_match
+
+from generation.intent import AGGREGATES, AUTO
 
 SCHEMA_URL = "https://vega.github.io/schema/vega-lite/v6.json"
 FORBIDDEN_TOP = ("layer", "concat", "hconcat", "vconcat", "repeat", "facet", "spec")
@@ -23,6 +24,8 @@ ORDERED_CHANNELS = (
     "x", "y", "xOffset", "yOffset", "color", "fill", "stroke", "opacity", "size",
     "shape", "strokeDash", "row", "column",
 )  # fmt: skip
+FILTER_OPERATORS = {"equal", "oneOf", "range", "lt", "lte", "gt", "gte", "valid"}
+POINT_MARKS = {"point", "tick", "circle", "square"}
 FENCE = re.compile(r"^\s*```(?:json)?\s*|\s*```\s*$", re.IGNORECASE)
 
 
@@ -96,6 +99,138 @@ def order_periods(encoding: dict, period_orders: dict[str, list[str]]) -> list[s
     return notes
 
 
+def _mark(spec: dict) -> str | None:
+    mark = spec["mark"]
+    return mark.get("type") if isinstance(mark, dict) else mark
+
+
+def _set_mark(spec: dict, kind: str) -> None:
+    if isinstance(spec["mark"], dict):
+        spec["mark"]["type"] = kind
+    else:
+        spec["mark"] = kind
+
+
+def apply_show(spec: dict, show: str) -> list[str]:
+    """Make the spec agree with what the user chose to show (generation/intent.py).
+    The choice is the user's, so it is applied, and each change is recorded."""
+    y = spec["encoding"].get("y")
+    if show == AUTO or not isinstance(y, dict):
+        return []
+    notes: list[str] = []
+    if show in AGGREGATES:
+        wanted = AGGREGATES[show]
+        if y.get("aggregate") != wanted:
+            y["aggregate"] = wanted
+            notes.append(f'y: aggregate set to "{wanted}", as chosen ({show})')
+        if _mark(spec) == "boxplot":
+            _set_mark(spec, "bar")
+            notes.append(f'mark set to "bar": a box plot cannot show a {show}')
+        return notes
+    if "aggregate" in y:
+        notes.append(f'y: aggregate "{y.pop("aggregate")}" removed, as chosen ({show})')
+    if show == "distribution" and _mark(spec) != "boxplot":
+        _set_mark(spec, "boxplot")
+        notes.append('mark set to "boxplot", as chosen (distribution)')
+    if show == "points" and _mark(spec) not in POINT_MARKS:
+        _set_mark(spec, "point")
+        notes.append('mark set to "point", as chosen (points)')
+    return notes
+
+
+def _filter_fields(predicate) -> list[str]:
+    """Every field a filter predicate names, through and / or / not."""
+    if isinstance(predicate, list):
+        return [name for part in predicate for name in _filter_fields(part)]
+    if not isinstance(predicate, dict):
+        return []  # an expression string: Vega evaluates it, nothing to look up
+    names = [predicate["field"]] if isinstance(predicate.get("field"), str) else []
+    for key in ("and", "or", "not"):
+        names += _filter_fields(predicate.get(key))
+    return names
+
+
+def clean_filters(spec: dict, field_names: set[str]) -> list[str]:
+    """A filter may only name fields of the profile; one that does not is
+    rejected, because the limit it stands for cannot be applied. A condition
+    with a field and nothing to compare it with ("is not missing", written in
+    a form Vega-Lite does not have) limits nothing: it is dropped, and noted."""
+    transforms = spec.get("transform")
+    if not isinstance(transforms, list):
+        return []
+    notes: list[str] = []
+    kept: list = []
+    for transform in transforms:
+        predicate = transform.get("filter") if isinstance(transform, dict) else None
+        if not isinstance(predicate, dict):
+            kept.append(transform)
+            continue
+        for name in _filter_fields(predicate):
+            if name not in field_names:
+                raise SpecError(
+                    f'The filter names "{name}", which is not a field in the profile. '
+                    "Filter only on fields from the profile, or leave the filter out."
+                )
+        joined = isinstance(predicate.get("and"), list)
+        parts = predicate["and"] if joined else [predicate]
+        real = []
+        for part in parts:
+            if isinstance(part, dict) and "field" in part and not FILTER_OPERATORS & part.keys():
+                text = json.dumps(part, ensure_ascii=False)
+                notes.append(f"removed a filter condition that compares nothing: {text}")
+            else:
+                real.append(part)
+        if real:
+            kept.append({**transform, "filter": {"and": real} if len(real) > 1 else real[0]})
+    if kept:
+        spec["transform"] = kept
+    else:
+        del spec["transform"]
+    return notes
+
+
+def apply_filter(spec: dict, row_filter: dict | None) -> list[str]:
+    """The row filter the user chose stands in the spec exactly once, whatever
+    the model wrote for that field."""
+    if row_filter is None:
+        return []
+    wanted = {"filter": dict(row_filter)}
+    transforms = spec.get("transform") if isinstance(spec.get("transform"), list) else []
+    if wanted in transforms:
+        return []
+    kept = [
+        t
+        for t in transforms
+        if not (isinstance(t, dict) and row_filter["field"] in _filter_fields(t.get("filter")))
+    ]
+    spec["transform"] = [wanted, *kept]
+    value = json.dumps(row_filter["equal"], ensure_ascii=False)
+    return [f'filter set to "{row_filter["field"]}" = {value}, as chosen']
+
+
+def _most_specific(errors: list):
+    """The schema is a union of chart kinds, so a mistake anywhere surfaces as
+    "matches none of them" at the top, with the whole spec quoted. The useful
+    message is the deepest one, and among equals the one that complains least:
+    that is the branch the spec nearly fits."""
+
+    def leaves(e):
+        if not e.context:
+            yield e
+        for child in e.context:
+            yield from leaves(child)
+
+    return max(
+        (leaf for error in errors for leaf in leaves(error)),
+        key=lambda e: (
+            len(e.absolute_path),
+            e.validator != "required",  # "needs layer / facet / spec": other chart kinds
+            -e.message.count("'"),
+            -len(e.message),
+        ),
+    )
+
+
 def validate_spec(
     text: str,
     *,
@@ -104,6 +239,8 @@ def validate_spec(
     y_field: str,
     color_field: str | None,
     period_orders: dict[str, list[str]] | None = None,
+    show: str = AUTO,
+    row_filter: dict | None = None,
 ) -> Validated:
     spec = parse_json(text)
     corrections: list[str] = []
@@ -131,8 +268,23 @@ def validate_spec(
         spec["transform"] = kept
     spec["$schema"] = SCHEMA_URL
 
-    # Every encoded field must exist. Unknown fields fall back to the user's choice
-    # for that channel, or the channel is dropped.
+    # Every encoded field must exist. One unknown field falls back to the user's
+    # choice for that channel, or the channel is dropped, and that is recorded.
+    # An answer whose x and y are both invented, or that names no real field at
+    # all, was not written for this dataset: repairing it would dress up a
+    # chart nobody asked for, so it is rejected.
+    named = {
+        channel: definition["field"]
+        for channel, definition in spec["encoding"].items()
+        if isinstance(definition, dict) and definition.get("field") is not None
+    }
+    unknown = {channel: name for channel, name in named.items() if name not in field_names}
+    if unknown and (len(unknown) == len(named) or {"x", "y"} <= unknown.keys()):
+        names = ", ".join(f'"{name}"' for name in dict.fromkeys(unknown.values()))
+        raise SpecError(
+            f"The answer uses field names that are not in the profile: {names}. "
+            "Use only the field names given in the profile, exactly as written."
+        )
     fallback = {"x_field": x_field, "y_field": y_field, "color_field": color_field}
     for channel, definition in list(spec["encoding"].items()):
         if not isinstance(definition, dict):
@@ -150,11 +302,15 @@ def validate_spec(
     if not spec["encoding"]:
         raise SpecError("No encoding channel names a field from the profile.")
 
+    corrections += clean_filters(spec, field_names)
+    corrections += apply_show(spec, show)
+    corrections += apply_filter(spec, row_filter)
     corrections += order_periods(spec["encoding"], period_orders or {})
 
-    error = best_match(schema_validator().iter_errors(spec))
-    if error is not None:
-        path = "/".join(str(p) for p in error.absolute_path) or "(root)"
+    errors = list(schema_validator().iter_errors(spec))
+    if errors:
+        error = _most_specific(errors)
+        path = "/".join(str(p) for p in error.absolute_path) or "the top level"
         raise SpecError(f"Not valid Vega-Lite v6 at {path}: {error.message[:300]}")
 
     return Validated(spec=spec, corrections=corrections)

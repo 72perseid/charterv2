@@ -11,6 +11,11 @@ class RevisionIn(Schema):
     y_field: str = Field(min_length=1, max_length=200)
     color_field: str | None = Field(default=None, max_length=200)
     prompt: str = Field(min_length=1, max_length=1000)
+    # auto, total, average, count, distribution or points. auto leaves it to the model.
+    show: str = "auto"
+    # Only rows where filter_field equals filter_value. Both or neither.
+    filter_field: str | None = Field(default=None, max_length=200)
+    filter_value: str | None = Field(default=None, max_length=200)
 
 
 class ChartIn(RevisionIn):
@@ -32,6 +37,9 @@ class RevisionOut(Schema):
     y_field: str
     color_field: str | None
     prompt: str
+    show: str
+    filter_field: str | None
+    filter_value: str | None
     status: str
     attempts: int
     error_message: str | None
@@ -62,6 +70,9 @@ class RevisionSummary(Schema):
     y_field: str
     color_field: str | None
     prompt: str
+    show: str
+    filter_field: str | None
+    filter_value: str | None
     status: str
     error_message: str | None
     model: str

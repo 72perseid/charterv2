@@ -39,6 +39,11 @@ class ChartRevision(models.Model):
     y_field = models.CharField(max_length=200)
     color_field = models.CharField(max_length=200, null=True, blank=True)
     prompt = models.TextField(max_length=1000)
+    # Chosen beside the request (generation/intent.py): what the chart shows,
+    # and one optional "only rows where field = value".
+    show = models.CharField(max_length=16, default="auto")
+    filter_field = models.CharField(max_length=200, null=True, blank=True)
+    filter_value = models.CharField(max_length=200, null=True, blank=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     attempts = models.IntegerField(default=0)
     error_message = models.TextField(null=True, blank=True)

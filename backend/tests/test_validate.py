@@ -136,3 +136,95 @@ def test_period_on_color_and_counted_period():
     out = validate_spec(json.dumps(spec), **PERIOD_KW)
     assert out.spec["encoding"]["color"]["sort"] == ORDER
     assert "sort" not in out.spec["encoding"]["y"]
+
+
+def test_invented_x_and_y_are_rejected_not_repaired():
+    # What a model writes when it never read the profile (a truncated prompt).
+    answer = {
+        **GOOD,
+        "encoding": {
+            "x": {"field": "period", "type": "ordinal"},
+            "y": {"field": "count", "type": "quantitative", "aggregate": "sum"},
+        },
+    }
+    with pytest.raises(SpecError, match='not in the profile: "period", "count"'):
+        validate_spec(json.dumps(answer), **KW)
+    # One near miss is still repaired, and says so.
+    answer["encoding"]["x"]["field"] = "Alan"
+    out = validate_spec(json.dumps(answer), **KW)
+    assert out.spec["encoding"]["y"]["field"] == "Sayı"
+    assert out.corrections == ['y: unknown field "count" replaced with "Sayı"']
+
+
+@pytest.mark.parametrize(
+    ("show", "mark", "aggregate"),
+    [
+        ("auto", "bar", "sum"),
+        ("total", "bar", "sum"),
+        ("average", "bar", "mean"),
+        ("count", "bar", "count"),
+        ("distribution", "boxplot", None),
+        ("points", "point", None),
+    ],
+)
+def test_the_chosen_show_decides_mark_and_aggregate(show, mark, aggregate):
+    out = validate_spec(json.dumps(GOOD), show=show, **KW)
+    assert out.spec["mark"] == mark
+    assert out.spec["encoding"]["y"].get("aggregate") == aggregate
+    assert bool(out.corrections) == (show not in {"auto", "total"})
+
+
+def test_show_turns_a_boxplot_back_into_bars_for_a_total():
+    answer = {**GOOD, "mark": {"type": "boxplot"}}
+    answer["encoding"] = {**GOOD["encoding"], "y": {"field": "Sayı", "type": "quantitative"}}
+    out = validate_spec(json.dumps(answer), show="total", **KW)
+    assert out.spec["mark"] == {"type": "bar"}
+    assert out.spec["encoding"]["y"]["aggregate"] == "sum"
+
+
+def test_the_chosen_filter_stands_in_the_spec_once():
+    chosen = {"field": "Alan", "equal": "Açma A"}
+    out = validate_spec(json.dumps(GOOD), row_filter=chosen, **KW)
+    assert out.spec["transform"] == [{"filter": chosen}]
+    assert out.corrections == ['filter set to "Alan" = "Açma A", as chosen']
+    # The model wrote it already: nothing to correct. It wrote another value: replaced.
+    same = {**GOOD, "transform": [{"filter": chosen}]}
+    assert validate_spec(json.dumps(same), row_filter=chosen, **KW).corrections == []
+    other = {**GOOD, "transform": [{"filter": {"field": "Alan", "equal": "Açma B"}}]}
+    out = validate_spec(json.dumps(other), row_filter=chosen, **KW)
+    assert out.spec["transform"] == [{"filter": chosen}]
+
+
+def test_a_filter_on_an_unknown_field_is_rejected():
+    answer = {**GOOD, "transform": [{"filter": {"field": "Region", "equal": "Thessaly"}}]}
+    with pytest.raises(SpecError, match='The filter names "Region"'):
+        validate_spec(json.dumps(answer), **KW)
+    nested = {"not": {"field": "Bölge", "equal": "x"}}
+    with pytest.raises(SpecError, match='The filter names "Bölge"'):
+        validate_spec(json.dumps({**GOOD, "transform": [{"filter": nested}]}), **KW)
+    # A filter the model wrote on a real field is kept as written.
+    kept = {**GOOD, "transform": [{"filter": {"field": "Alan", "equal": "Açma A"}}]}
+    assert validate_spec(json.dumps(kept), **KW).spec["transform"] == kept["transform"]
+
+
+def test_a_filter_condition_that_compares_nothing_is_dropped():
+    empty = {"field": "Alan", "not": {"missing": True}}
+    real = {"field": "Alan", "equal": "Açma A"}
+    answer = {**GOOD, "transform": [{"filter": {"and": [real, empty]}}]}
+    out = validate_spec(json.dumps(answer), **KW)
+    assert out.spec["transform"] == [{"filter": real}]
+    assert out.corrections == [
+        "removed a filter condition that compares nothing: " + json.dumps(empty, ensure_ascii=False)
+    ]
+    # Nothing real is left: no transform at all.
+    out = validate_spec(json.dumps({**GOOD, "transform": [{"filter": empty}]}), **KW)
+    assert "transform" not in out.spec
+
+
+def test_schema_errors_name_the_place_not_the_whole_spec():
+    misplaced = {**GOOD, "aggregate": {"groupby": ["Alan"]}}
+    with pytest.raises(SpecError) as caught:
+        validate_spec(json.dumps(misplaced), **KW)
+    message = str(caught.value)
+    assert "top level" in message and "'aggregate' was unexpected" in message
+    assert "'mark'" not in message and "$schema" not in message

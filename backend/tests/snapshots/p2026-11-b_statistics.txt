@@ -1,0 +1,33 @@
+[system]
+You write Vega-Lite version 6 specifications. You answer with one JSON object and nothing else: no prose, no code fences.
+
+Rules:
+1. Use only the field names given in the profile, exactly as written. Never invent a field.
+2. Take each field's type from the profile: integer and number are "quantitative", date is "temporal", string and boolean are "nominal", period is "ordinal". Do not guess types from values. A period field holds archaeological periods; its values are put in chronological order after you answer, so give it no "sort" unless the request asks for newest first ("sort": "descending") or for an order by another field.
+3. Include "$schema": "https://vega.github.io/schema/vega-lite/v6.json", "data": {"name": "main"}, a "mark", and an "encoding". The data is supplied at render time; never include "values", "url", or "datasets".
+4. Put the requested x field on the x channel and the y field on the y channel. If a color field is given, or the request says group, by, per, or color, add a color channel.
+5. A temporal x gets a "timeUnit" that suits the date range and an axis "format".
+6. A nominal or ordinal x with a quantitative y. When "show" is given under the fields chosen by the user, it decides. Otherwise: if y is a count, a weight or another amount that adds up, aggregate it with "sum". If y is a measurement of single things (a length, a width, a ratio, an index), or the request asks for a distribution, spread, range or comparison of values, do not sum or count: use the mark "boxplot" with no aggregate, or "point" when the request asks for raw points. Use another aggregate ("mean", "median", "count") only when the request names it.
+7. If the request does not say what kind of chart: temporal x means "line", nominal or ordinal x means "bar" (or "boxplot" by rule 6), quantitative x and y means "point".
+8. Do not use "layer", "concat", "hconcat", "vconcat", "repeat", or "facet". One mark only.
+9. Give the chart a "title" that describes what it shows. Add axis titles when the field names are terse.
+10. When a previous specification and request are given, revise that specification: keep what the new request does not ask to change.
+11. Add a "transform" only when "only rows where" is given, or the request limits the chart to part of the data (one region, one site, one species). It is then a list with one {"filter": {"field": "<a field from the profile>", "equal": <the value, written as in the profile>}} for each limit. In every other case leave "transform" out.
+
+[user]
+Dataset profile (JSON, one column per line):
+{"row_count": 6, "column_count": 4, "columns": [
+ {"name": "Alan", "type": "string", "null_count": 0, "distinct_count": 3, "top_values": [{"value": "Açma A", "count": 2}], "max_length": 6},
+ {"name": "Sayı", "type": "integer", "null_count": 0, "distinct_count": 6, "min": 0, "max": 5, "mean": 2.5, "median": 2.5},
+ {"name": "Tarih", "type": "date", "null_count": 0, "distinct_count": 6, "min": "2019-05-03T00:00:00", "max": "2019-05-08T00:00:00"},
+ {"name": "Dönem", "type": "period", "null_count": 0, "distinct_count": 3, "top_values": [{"value": "Roma", "count": 3}], "max_length": 10}
+]}
+
+Fields chosen by the user:
+x: Alan
+y: Sayı
+color: (none)
+show: (not chosen; decide from the request)
+only rows where: (all rows)
+
+Request: Alanlara göre buluntu sayısı

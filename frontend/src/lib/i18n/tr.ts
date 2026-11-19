@@ -31,7 +31,12 @@ export const tr: Strings = {
   datasets: {
     title: 'Veri setleri',
     upload: 'Yükle',
-    empty: 'Henüz veri seti yok. Başlamak için bir CSV ya da Excel dosyası yükleyin.',
+    empty:
+      'Henüz veri seti yok. Başlamak için bir CSV ya da Excel dosyası yükleyin ya da örneği deneyin.',
+    example: 'Örneği dene',
+    exampleTitle:
+      'Veri setlerinize dönemlere göre buluntuları içeren küçük bir tablo ekler. Satırlar uydurmadır. İncelemek için model ya da anahtar gerekmez.',
+    exampleAdding: 'Ekleniyor…',
     columns: { name: 'Ad', rows: 'Satır', columns: 'Sütun', status: 'Durum', created: 'Oluşturulma' },
     uploadForm: {
       title: 'Veri seti yükle',
@@ -155,6 +160,20 @@ export const tr: Strings = {
       y: 'Y ekseni',
       color: 'Renk (isteğe bağlı)',
       none: '— yok —',
+      show: 'Ne gösterilsin',
+      shows: {
+        auto: 'Model karar versin',
+        total: 'Toplam',
+        average: 'Ortalama',
+        count: 'Satır sayısı',
+        distribution: 'Dağılım (kutu grafiği)',
+        points: 'Her satır bir nokta'
+      },
+      showHint:
+        'Burada seçtiğiniz, model ne yanıt verirse versin grafiğe uygulanır. Uzunluk gibi ölçümler toplam değil, dağılım ya da ortalama olarak gösterilir.',
+      filterField: 'Yalnızca şu satırlar (isteğe bağlı)',
+      filterAll: '— tüm satırlar —',
+      filterValue: 'eşittir',
       prompt: 'Grafiği tarif edin',
       promptHint: 'Örneğin: açmalara göre toplam buluntu sayısı çubuk olarak, ya da ağırlığın zamana göre değişimi çizgi olarak.',
       privacyNote: 'Modelin göreceği: {level}',
