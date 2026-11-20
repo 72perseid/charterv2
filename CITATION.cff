@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use Chart-er, please cite it as below."
+type: software
+title: "Chart-er"
+abstract: >-
+  A tabular dataset and a sentence in; a Vega-Lite chart, and the full record
+  of how it was produced, out. Built for archaeologists who work in
+  spreadsheets: period columns are ordered chronologically from PeriodO, the
+  language model is the user's own, and every revision is stored with the
+  exact request and response that produced it.
+authors:
+  - family-names: "Köseoğlu"
+    given-names: "Tuğçe"
+    affiliation: "Ege University"
+    orcid: "https://orcid.org/0009-0001-0763-0887"
+repository-code: "https://github.com/72perseid/charterv2"
+url: "https://charter.tugcekoseoglu.com"
+license: MIT
+version: "2"
+date-released: "2026-11-20"
+keywords:
+  - archaeology
+  - data visualization
+  - Vega-Lite
+  - language models
+  - reproducibility
+  - PeriodO

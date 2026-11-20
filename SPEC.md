@@ -227,6 +227,7 @@ SvelteKit, static adapter, all routes client-rendered behind a `+layout.ts` that
 | `/charts` | Table of charts with dataset, current revision status, updated |
 | `/charts/[id]` | The chart viewer: canvas, revision list down the side with status and prompt, revision form pre-filled from the selected revision, tabs for data and for the stored request/response, export PNG/SVG/JSON/bundle |
 | `/settings` | Model configuration (base URL, model, key, temperature, test button), account, sign out |
+| `/help` | The user guide, shortened: files, period columns, the model, describing a chart, what leaves the server, common failures. Public, so the landing page links to it. Its text lives in the i18n files like every other string; the long form is `docs/guide/` |
 
 Components, all hand-written: `AppShell` (one nav definition), `DataTable`, `UploadForm`, `ProfileTable`, `ChartCanvas` (wraps vega-embed, receives spec and rows, sets `data.values`), `RevisionList`, `RevisionForm`, `StatusChip`, `PrivacyLevel`.
 
@@ -307,6 +308,7 @@ chart-er/
   deploy/
     compose.yml  Caddyfile  .env.example
   docs/
+    README.md (index)  guide/ (for users)  maintain/ (for the maintainer)
     architecture.md  openapi.json  adr/
   README.md  LICENSE (MIT)  CITATION.cff
 ```
@@ -345,4 +347,4 @@ Findings from v1 and where v2 closes them: unauthenticated functions and caller-
 | 7 | VPS size and provider | Confirmed: Contabo EU, 4 vCPU / 7.8 GB / 96 GB. Disclosed in the README. |
 | 8 | Domain name and TLS | Confirmed: `charter.tugcekoseoglu.com` since 2026-11-19, TLS by the existing host Caddy. The earlier name `charter.72perseids.com` redirects to it. The A record moves off the v1 prototype after build step 1 passes on the VPS. |
 | 9 | Do old v1 users, uploads, or charts migrate | No. |
-| 10 | License and citation | MIT and a `CITATION.cff` naming the owner and the conference. |
+| 10 | License and citation | MIT and a `CITATION.cff` naming the owner (affiliation and ORCID). The conference is left out. |

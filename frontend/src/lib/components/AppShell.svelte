@@ -13,7 +13,8 @@
   const links = [
     { href: '/datasets', label: t.nav.datasets },
     { href: '/charts', label: t.nav.charts },
-    { href: '/settings', label: t.nav.settings }
+    { href: '/settings', label: t.nav.settings },
+    { href: '/help', label: t.nav.help }
   ];
 
   function isCurrent(href: string): boolean {

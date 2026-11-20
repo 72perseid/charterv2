@@ -23,6 +23,7 @@
       <a class="button" href="/login">{t.landing.signIn}</a>
       <a class="button quiet" href="/register">{t.landing.register}</a>
     {/if}
+    <a class="how" href="/help">{t.landing.help}</a>
   </p>
 </main>
 
@@ -54,6 +55,10 @@
   .actions {
     display: flex;
     gap: 0.75rem;
+    align-items: center;
     margin-top: 2rem;
+  }
+  .how {
+    margin-left: 0.5rem;
   }
 </style>

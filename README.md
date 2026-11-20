@@ -4,6 +4,8 @@ A tabular dataset and a sentence in; a Vega-Lite chart, and the full record of h
 
 Chart-er is built for archaeologists and students who work in Excel and have never written a plotting script. A signed-in user uploads a CSV or Excel file, picks columns, describes the chart in plain language, and a language model of the user's choosing, paid for with the user's own key, writes the Vega-Lite specification. Every revision is stored with the exact request that produced it, so any chart can be traced back to its inputs and replayed.
 
+**Documentation:** [docs/](docs/README.md) holds a user guide (getting started, datasets, period columns, models, charts, troubleshooting) and the maintainer's pages (development, changing things, deployment, operations). A shortened guide is inside the app under Help, in both languages.
+
 The design and its reasons are in [SPEC.md](SPEC.md); one short record per decision is in [docs/adr](docs/adr/README.md); the map of the code is [docs/architecture.md](docs/architecture.md); the API is described by [docs/openapi.json](docs/openapi.json). The interface is in English and Turkish.
 
 ## What leaves the server
@@ -47,6 +49,8 @@ Check the context window. Ollama reads 4 096 tokens by default and cuts a longer
 A model that returns a first `done` revision with a sensible chart is good enough. Small local models are more likely to answer with text around the JSON or to drift from the column names; the validation and the one retry in the worker cover the common cases, and a failed revision tells you why. Prices stay blank, so the cost column reads as unknown rather than zero.
 
 ## Using it
+
+The short version; the [user guide](docs/guide/getting-started.md) is the long one.
 
 1. **Settings.** Enter an OpenAI-compatible base URL and your API key; the model list loads from the provider, and prices fill in when the provider publishes them. Test the connection.
 2. **Datasets.** Upload a CSV, TSV, or xlsx, or press "Try an example" to add a small table of finds by period (invented rows, in the interface language) and look around without a file of your own. The worker reads it and the page shows how: encoding, delimiter, decimal mark, sheet, header row, and a typed profile of every column. Override the sheet or header row if needed. A text column of archaeological periods (`Helenistik`, `Early Bronze Age`, `EB II`, `MÖ 5. yüzyıl`, `1500 BC`) is recognised as a *period* column and charted oldest first instead of alphabetically. Names are dated from PeriodO for the region the column's labels point to, and the column table shows which published definition placed each value. There you can say what a value means (`ECh` is `Early Chalcolithic`, `Evre 7` is `720-650 BC`), point the column at the start and end year columns of your own data ("Dates from columns", also offered beside "Treat as periods"), type the whole order for site phases, ask your model about the values left unplaced, or switch it off. Choose what the model may see.
@@ -102,6 +106,10 @@ Per user: 20 uploads and 60 revisions per hour. No email verification until an S
 ## Status
 
 All six build steps of SPEC.md §12 are done. Visual design is deliberately plain until decided separately.
+
+## Citing
+
+[CITATION.cff](CITATION.cff) has the reference; GitHub shows it under "Cite this repository". For a figure made with Chart-er, cite the software and keep the chart's reproducibility bundle with the paper ([how](docs/guide/reproducibility.md)).
 
 ## License
 

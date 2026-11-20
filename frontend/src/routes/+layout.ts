@@ -7,7 +7,7 @@ import type { LayoutLoad } from './$types';
 export const ssr = false;
 export const prerender = false;
 
-const PUBLIC = new Set(['/', '/login', '/register']);
+const PUBLIC = new Set(['/', '/login', '/register', '/help']);
 
 export const load: LayoutLoad = async ({ url }) => {
   if (session.user === null) {
