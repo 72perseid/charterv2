@@ -57,6 +57,7 @@
     border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 1rem;
+    overflow-x: auto;
   }
   .host {
     width: 100%;

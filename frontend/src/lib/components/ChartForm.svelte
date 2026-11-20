@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { ApiError, charts, type ColumnProfile, type PrivacyLevel, type Show } from '$lib/api';
+  import { ApiError, charts, modelConfig, type ColumnProfile, type PrivacyLevel, type Show } from '$lib/api';
+  import { onMount } from 'svelte';
   import IntentFields from '$lib/components/IntentFields.svelte';
   import { t } from '$lib/i18n';
 
@@ -11,7 +12,6 @@
   }: { datasetId: number; columns: ColumnProfile[]; privacyLevel: PrivacyLevel } = $props();
   const s = t.charts.form;
 
-  const quantitative = $derived(columns.filter((c) => c.type === 'integer' || c.type === 'number'));
   let title = $state('');
   let x_field = $state('');
   let y_field = $state('');
@@ -23,9 +23,23 @@
   let error = $state('');
   let busy = $state(false);
 
+  // Whether a model is connected; null until known. Asked here so the form can say so
+  // before a chart is created and fails for that reason.
+  let connected = $state<boolean | null>(null);
+  onMount(async () => {
+    try {
+      const config = await modelConfig.get();
+      connected = Boolean(config.base_url && config.model);
+    } catch {
+      connected = null;
+    }
+  });
+
+  // A period column is what the x axis is for in most charts made here, so it is
+  // offered. Nothing else is guessed: the first column of a table is usually an
+  // identifier, and a chart of the wrong columns costs a request.
   $effect(() => {
-    if (!x_field && columns.length) x_field = columns[0].name;
-    if (!y_field && quantitative.length) y_field = quantitative[0].name;
+    if (!x_field) x_field = columns.find((c) => c.type === 'period')?.name ?? '';
   });
 
   async function submit(event: SubmitEvent) {
@@ -55,10 +69,14 @@
 
 <form class="chart-form" onsubmit={submit}>
   <h2>{s.title}</h2>
+  {#if connected === false}
+    <p class="no-model" role="status">{s.noModel} <a href="/settings">{s.noModelLink}</a></p>
+  {/if}
   <div class="grid">
     <div class="field">
       <label for="x_field">{s.x}</label>
       <select id="x_field" bind:value={x_field} required>
+        <option value="" disabled>{s.choose}</option>
         {#each columns as c (c.name)}
           <option value={c.name}>{c.name} · {t.types[c.type]}</option>
         {/each}
@@ -67,6 +85,7 @@
     <div class="field">
       <label for="y_field">{s.y}</label>
       <select id="y_field" bind:value={y_field} required>
+        <option value="" disabled>{s.choose}</option>
         {#each columns as c (c.name)}
           <option value={c.name}>{c.name} · {t.types[c.type]}</option>
         {/each}
@@ -88,7 +107,8 @@
     <textarea id="prompt" rows="3" maxlength="1000" required bind:value={prompt}></textarea>
     <small>{s.promptHint}</small>
     <small class="privacy">
-      {s.privacyNote.replace('{level}', t.datasets.privacy.describe[privacyLevel].toLowerCase())}
+      {s.privacyNote.replace('{level}', t.datasets.privacy.levels[privacyLevel])}
+      {t.datasets.privacy.describe[privacyLevel]}
     </small>
   </div>
   <div class="field">
@@ -96,7 +116,7 @@
     <input id="title" type="text" maxlength="200" bind:value={title} />
   </div>
   {#if error}<p class="error" role="alert">{error}</p>{/if}
-  <button type="submit" disabled={busy || !prompt.trim()}>{busy ? s.creating : s.create}</button>
+  <button type="submit" disabled={busy || !prompt.trim() || !x_field || !y_field}>{busy ? s.creating : s.create}</button>
 </form>
 
 <style>
@@ -124,6 +144,12 @@
   }
   .privacy {
     color: var(--primary-ink);
+  }
+  .no-model {
+    border-left: 3px solid var(--warning);
+    padding: 0.4rem 0.75rem;
+    margin: 0.5rem 0 1rem;
+    font-size: 0.9rem;
   }
   textarea {
     resize: vertical;

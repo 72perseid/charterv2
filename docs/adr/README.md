@@ -21,3 +21,4 @@ One short record per decision in SPEC.md §2, so the reasoning survives the pers
 - [0017](0017-cost-at-run-time.md) Cost estimated from user-entered prices, fixed at run time
 - [0018](0018-period-columns.md) Period columns are ordered by the server, with PeriodO as the reference
 - [0019](0019-choices-beside-the-request.md) What to show and which rows are chosen in the form, and enforced by the server
+- [0020](0020-docs-from-markdown.md) The site's documentation is the repository's Markdown, rendered with marked

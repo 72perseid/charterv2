@@ -77,6 +77,19 @@
   const exportSpec = () => rev?.spec && saveText(JSON.stringify(rev.spec, null, 2), `${base}.vl.json`);
 
   const pretty = (value: unknown) => JSON.stringify(value, null, 2);
+  // What the revision on screen was made from, one fact per item.
+  const facts = $derived(
+    rev
+      ? [
+          `${s.revision} ${rev.revision_no}`,
+          `${rev.x_field} × ${rev.y_field}`,
+          rev.color_field,
+          rev.show !== 'auto' ? t.charts.form.shows[rev.show] : null,
+          rev.filter_field ? `${rev.filter_field} = ${rev.filter_value}` : null
+        ].filter((f): f is string => Boolean(f))
+      : []
+  );
+
   const money = (usd: number) => '$' + (usd < 0.01 ? usd.toFixed(5) : usd.toFixed(3));
 </script>
 
@@ -87,7 +100,7 @@
     <h1>{chart.title}</h1>
     <p class="meta">
       {s.dataset}: <a href="/datasets/{chart.dataset_id}">{chart.dataset_name}</a>
-      {#if rev}· {s.revision} {rev.revision_no} · {rev.x_field} × {rev.y_field}{#if rev.color_field} · {rev.color_field}{/if}{#if rev.show !== 'auto'} · {t.charts.form.shows[rev.show]}{/if}{#if rev.filter_field} · {rev.filter_field} = {rev.filter_value}{/if}{/if}
+      {#each facts as fact, i (i)}<span class="fact">{fact}</span>{/each}
     </p>
   </div>
   <div class="head-actions">
@@ -233,7 +246,7 @@
   }
   @media (max-width: 56rem) {
     .layout {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
   .main > * + * {
@@ -254,8 +267,10 @@
     display: flex;
     gap: 0.25rem;
     border-bottom: 1px solid var(--line);
+    overflow-x: auto;
   }
   .tabs button {
+    white-space: nowrap;
     background: transparent;
     border: 0;
     border-bottom: 2px solid transparent;
@@ -325,6 +340,14 @@
     border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 0.75rem 1.25rem 0.9rem;
+    margin-bottom: 1rem;
+  }
+  .export small {
+    display: block;
+    line-height: 1.4;
+  }
+  .fact::before {
+    content: ' · ';
   }
   .export h2 {
     font-size: 0.85rem;

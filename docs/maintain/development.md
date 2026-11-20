@@ -1,10 +1,10 @@
 # Development
 
-How to run Chart-er from source, test it, and find your way around. For running it as a finished system, `docker compose` in the [README](../../README.md#running-it) is all you need.
+How to run Chart-er from source, test it, and find your way around. For running it as a finished system, see [Running it with Docker](docker.md).
 
 ## Two ways to run it
 
-**Compose, everything built.** Closest to the server. Rebuild after every change.
+**Compose, everything built.** What a real installation runs ([Running it with Docker](docker.md)). Rebuild after every change.
 
 ```sh
 cp deploy/.env.example deploy/.env      # set SECRET_KEY, POSTGRES_PASSWORD, FERNET_KEY
@@ -93,9 +93,10 @@ frontend/src/
   routes/       one folder per page; +layout.ts is the login guard
   lib/api.ts    every call to the backend, typed
   lib/i18n/     en.ts and tr.ts: every string on screen
+  lib/docs.ts   the /docs pages: reads docs/guide and docs/maintain, renders Markdown
   lib/components/
 deploy/         compose.yml, Caddyfile, backup.sh, restore.sh, .env.example
-docs/           this wiki, architecture.md, adr/, openapi.json
+docs/           these pages (also served by the site under /docs), architecture.md, adr/, openapi.json
 ```
 
 The request paths through these files are drawn in [architecture.md](../architecture.md).

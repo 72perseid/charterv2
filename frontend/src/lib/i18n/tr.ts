@@ -2,7 +2,7 @@ import type { Strings } from './en';
 
 export const tr: Strings = {
   appName: 'Chart-er',
-  nav: { datasets: 'Veri setleri', charts: 'Grafikler', settings: 'Ayarlar', help: 'Yardım', signOut: 'Çıkış' },
+  nav: { datasets: 'Veri setleri', charts: 'Grafikler', settings: 'Ayarlar', docs: 'Belgeler', signOut: 'Çıkış' },
   language: { label: 'Dil', en: 'English', tr: 'Türkçe' },
   landing: {
     title: 'Chart-er',
@@ -17,7 +17,7 @@ export const tr: Strings = {
     signIn: 'Giriş yap',
     register: 'Hesap oluştur',
     source: 'Kaynak kodu',
-    help: 'Nasıl çalışır'
+    docs: 'Belgeler'
   },
   auth: {
     signIn: 'Giriş yap',
@@ -161,6 +161,9 @@ export const tr: Strings = {
       y: 'Y ekseni',
       color: 'Renk (isteğe bağlı)',
       none: '— yok —',
+      choose: '— bir sütun seçin —',
+      noModel: 'Henüz bir model bağlı değil; bu yüzden grafik yapılamaz.',
+      noModelLink: 'Ayarlar\'da bir model bağlayın',
       show: 'Ne gösterilsin',
       shows: {
         auto: 'Model karar versin',
@@ -177,7 +180,7 @@ export const tr: Strings = {
       filterValue: 'eşittir',
       prompt: 'Grafiği tarif edin',
       promptHint: 'Örneğin: açmalara göre toplam buluntu sayısı çubuk olarak, ya da ağırlığın zamana göre değişimi çizgi olarak.',
-      privacyNote: 'Modelin göreceği: {level}',
+      privacyNote: 'Modelin göreceği: {level}.',
       create: 'Grafik oluştur',
       creating: 'Oluşturuluyor…'
     },
@@ -272,119 +275,19 @@ export const tr: Strings = {
       signOut: 'Çıkış'
     }
   },
-  help: {
-    title: 'Yardım',
-    lead: 'Bir tablodan grafiğe nasıl gidilir ve Chart-er bu yolda neler yapar.',
-    contents: 'Bu sayfada',
-    sections: [
-      {
-        id: 'start',
-        title: 'Beş adımda',
-        paragraphs: [],
-        points: [
-          'Veri setleri: bir CSV ya da Excel dosyası yükleyin ya da "Örneği dene" ile uydurma satırlardan oluşan küçük bir buluntu tablosu ekleyin.',
-          'Sütun tablosuna bakın. Sayıların sayı olarak okunduğunu ve sütun adlarının doğru olduğunu kontrol edin.',
-          'Ayarlar: bir dil modelinin adresini ve anahtarını girin, model listesini getirin, kaydedin ve bağlantıyı sınayın.',
-          'Veri setini açın, X ve Y sütunlarını seçin, ne görmek istediğinizi yazın ve grafiği oluşturun.',
-          'Doğru olana kadar bir cümleyle revize edin ("yatay yap"), sonra PNG ya da SVG olarak dışa aktarın.'
-        ]
-      },
-      {
-        id: 'files',
-        title: 'Dosyanız',
-        paragraphs: [
-          'Her dosyada tek tablo: ilk satırda sütun adları, her satırda bir kayıt. CSV, TSV ve xlsx kabul edilir; en çok 20 MB, 100 000 satır ve 200 sütun. Eski .xls dosyalarını önce .xlsx olarak kaydedin.',
-          'Chart-er kodlamayı, ayırıcıyı, ondalık işaretini, sayfayı ve başlık satırını kendisi belirler ve her birini "Nasıl okundu" altında gösterir. Türkçe Excel\'in yazdığı noktalı virgüllü, ondalık virgüllü dosyalar doğru okunur. Tarihler gün önce gelecek şekilde okunur.'
-        ],
-        points: [
-          '"Metin" görünen bir sayı sütununda sayı olmayan hücreler vardır ("?", "12 cm"). Bunları dosyada temizleyip yeniden yükleyin.',
-          'Sütun adları aslında bir başlık ya da veri satırıysa veri seti sayfasında "Başlık satırı"nı değiştirin. Sayım 0\'dan başlar.',
-          'Türkçe harfler bozuk çıkıyorsa dosyayı UTF-8 olarak kaydedin.'
-        ]
-      },
-      {
-        id: 'periods',
-        title: 'Dönem sütunları',
-        paragraphs: [
-          'Arkeolojik dönemler içeren bir sütun ("Geç Tunç Çağı", "Helenistik", "EB II", "MÖ 5. yüzyıl", "1500 BC") "dönem" türünü alır ve onu kullanan her grafik alfabetik değil, eskiden yeniye doğru sıralanır. Adlar, yayımlanmış dönem tanımlarının dizini olan PeriodO\'dan, sütununuzun işaret ettiği bölgeye göre tarihlenir.',
-          'Her değere hangi yılların verildiğini ve bunların hangi yayından geldiğini görmek için sütunda "Sıra ve kaynaklar"a basın. Bir grafiği sunmadan önce burayı kontrol edin. Düzeltmeler de buradan yapılır:'
-        ],
-        points: [
-          'Bir değerin anlamını yazın: "ECh", "Early Chalcolithic" demektir; "Evre 7", "720-650 BC" demektir.',
-          '"Tarihleri sütunlardan al": kendi tablonuzdaki başlangıç ve bitiş yılı sütunlarını kullanın.',
-          'Bütün sırayı elle yazın, her satıra bir değer. Tek bir yerleşimin evreleri için en uygun yol budur.',
-          'Yerleştirilemeyen değerleri modelinize sorun. Sütunun değerlerini modele yalnızca bu düğme gönderir ve önce onayınızı ister.',
-          '"Dönem değil" özelliği kapatır; "Dönem olarak işle" tanınmamış bir sütun için açar.'
-        ]
-      },
-      {
-        id: 'model',
-        title: 'Model',
-        paragraphs: [
-          'Chart-er\'in kendi dil modeli yoktur. Ayarlar\'da kendi anahtarınızla bir model bağlarsınız ve kullandığınız kadarını sağlayıcınıza ödersiniz: küçük bir modelde grafik başına bir sentin çok altında. Sohbet aboneliği API anahtarı içermez; anahtarı sağlayıcının geliştirici sayfalarından alırsınız.',
-          'Temel adres, sağlayıcının /v1 ile biten adresidir; örneğin https://api.openai.com/v1 ya da https://openrouter.ai/api/v1. Küçük ve ucuz bir model yeterlidir. En tekrarlanabilir grafikler için sıcaklığı 0\'da bırakın.',
-          'Anahtarınız şifrelenerek saklanır ve yalnızca girdiğiniz adresi çağırmak için kullanılır. Bu sunucuyu işleten kişi şifreyi çözebilir; bu yüzden harcama sınırı olan bir anahtar kullanın.'
-        ],
-        points: []
-      },
-      {
-        id: 'chart',
-        title: 'Grafiği tarif etmek',
-        paragraphs: [
-          'Sütunları seçin, sonra ne istediğinizi bir meslektaşınıza söyler gibi, Türkçe ya da İngilizce yazın: "Dönemlere göre toplam buluntu, çubuk grafik", "Açmalara göre ağırlık, mal grubuna göre renkli". Grafik türü sizin için önemliyse adını yazın. Her istekte tek grafik: yan yana paneller ve katmanlı grafikler desteklenmez.',
-          'İki seçim, modelin cümlenizi nasıl okuduğuna bağlı kalmasın diye formda yapılabilir. Model ne yanıt verirse versin, Chart-er bunları grafiğe kendisi uygular.'
-        ],
-        points: [
-          '"Ne gösterilsin". Toplam: sayım ve ağırlık gibi toplanabilen miktarlar için. Ortalama: her grup için tipik bir değer. Satır sayısı: her grupta kaç kayıt olduğu. Dağılım: uzunluk gibi ölçümler için kutu grafiği. Her satır bir nokta: ham değerler.',
-          'Ölçümleri toplamayın. Kırk kemik uzunluğunun toplamı bir şey ifade etmez; Dağılım ya da Ortalama seçin.',
-          '"Yalnızca şu satırlar … eşittir …" grafiği bir sütunun tek bir değeriyle sınırlar; örneğin Bölge eşittir Teselya. Hiçbir satırda bulunmayan bir değer hemen reddedilir.'
-        ]
-      },
-      {
-        id: 'result',
-        title: 'Sonucu okumak',
-        paragraphs: [
-          'Grafik sayfasında dört sekme vardır: grafik, arkasındaki satırlar, Vega-Lite tanımı ve modele giden istek ile gelen yanıtın birebir kaydı; model, jeton sayıları ve tahmini maliyetle birlikte.',
-          'Chart-er modelin yanıtını denetler ve yaptığı her değişikliği "Modelin yanıtına uygulanan düzeltmeler" altında listeler: sıraya konan bir dönem sütunu, yanlış yazılmış bir sütun adının değiştirilmesi, toplama biçiminin sizin seçiminize çevrilmesi. Bir grafik sizi şaşırtırsa önce bu listeyi okuyun. Sütunlarınızla hiç ilgisi olmayan bir yanıt onarılmaz, gerekçesiyle reddedilir.'
-        ],
-        points: []
-      },
-      {
-        id: 'revise',
-        title: 'Revizyonlar ve dışa aktarma',
-        paragraphs: [
-          'Her değişiklik yeni bir revizyondur; hiçbir şeyin üzerine yazılmaz. Model önceki tanımı da görür; bu yüzden "logaritmik ölçek kullan" yalnızca onu değiştirir. Listeden bir revizyona tıklayarak ona bakabilir, ondan yeni bir revizyon başlatabilir ya da onu geçerli revizyon yapabilirsiniz.',
-          'Sunumlar için PNG, baskı için SVG ya da tanımı JSON olarak dışa aktarın. Yeniden üretilebilirlik paketi, veri seti profilini ve her revizyonun isteğini, yanıtını ve tanımını içeren tek bir dosyadır. Satırlarınızı da anahtarınızı da içermez; yayımlanan bir şeklin yanında saklanacak dosya budur.'
-        ],
-        points: []
-      },
-      {
-        id: 'privacy',
-        title: 'Bu sunucudan ne çıkar',
-        paragraphs: [
-          'Model dosyanızı hiçbir zaman almaz. Veri setinin bir profilini alır; o da yalnızca Ayarlar\'da girdiğiniz adrese gider. Profilin ne kadarını söyleyeceğini her veri seti için "Modelin gördüğü" altında siz belirlersiniz:'
-        ],
-        points: [
-          'En az: sütun adları, türler, satır sayısı, boş ve farklı değer sayıları.',
-          'İstatistikler (varsayılan): ayrıca sayı ve tarih sütunlarının aralıkları ile metin sütunlarının en sık beş değeri.',
-          'Örnek: ayrıca tablodan on satır. Ham satırların gönderildiği tek düzey budur.',
-          'Her düzeyde, kimlik sütunlarının değerleri gönderilmez ve 40 karakterden uzun metin değerleri dışarıda bırakılır.'
-        ]
-      },
-      {
-        id: 'problems',
-        title: 'Bir şey başarısız olduğunda',
-        paragraphs: ['Başarısız bir revizyon nedenini söyler; "İstek ve yanıt" sekmesi modelin ne yanıt verdiğini gösterir. Hata iletileri İngilizcedir.'],
-        points: [
-          '"Endpoint returned 401": anahtar yanlış ya da başka bir sağlayıcıya ait. "404": temel adresi (çoğunlukla /v1 ile biter) ve model adını kontrol edin. "429": istek sınırına takıldınız ya da hesapta bakiye yok.',
-          '"The endpoint did not answer in time": yeniden deneyin. Kendi bilgisayarınızdaki bir model ilk çağrıda henüz yükleniyordur.',
-          '"The answer is not JSON" ya da "Not valid Vega-Lite": model iki kez hata yaptı. Yeniden deneyin, isteği sadeleştirin, formda "Ne gösterilsin"i seçin ya da başka bir model kullanın.',
-          '"The answer uses field names that are not in the profile": model sütun uydurdu. Yerel bir modelde istek büyük olasılıkla kesilmiştir; bağlam uzunluğunu artırın (Ollama için OLLAMA_CONTEXT_LENGTH=16384).',
-          'Grafik ölçümleri topluyorsa Dağılım ya da Ortalama seçin. Bütün veriyi gösteriyorsa "Yalnızca şu satırlar"ı kullanın. Dönemler sırasızsa veri seti sayfasında düzeltin, sonra grafiği revize edin.',
-          'Sınırlar: saatte 20 yükleme ve 60 revizyon.'
-        ]
-      }
-    ]
+  docs: {
+    title: 'Belgeler',
+    lead: 'Chart-er nasıl kullanılır, kendi kopyanız nasıl çalıştırılır ve kod üzerinde nasıl çalışılır.',
+    sections: { guide: 'Chart-er\'i kullanmak', maintain: 'Chart-er\'i çalıştırmak ve değiştirmek' },
+    sectionLead: {
+      guide: 'Elinde bir tablo olan kişi için. Programlama bilgisi gerekmez.',
+      maintain: 'Kendi kopyasını kuran ya da kod üzerinde çalışan kişi için.'
+    },
+    englishOnly: 'Bu sayfa yalnızca İngilizce olarak mevcut.',
+    contents: 'Sayfalar',
+    previous: 'Önceki',
+    next: 'Sonraki',
+    home: 'Tüm sayfalar'
   },
   status: { pending: 'Bekliyor', running: 'Çalışıyor', done: 'Tamam', failed: 'Başarısız' },
   errors: {

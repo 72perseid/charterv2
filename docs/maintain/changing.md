@@ -27,7 +27,16 @@ The rule of thumb that has held so far: **repair what the user unambiguously cho
 
 ## Text on screen
 
-Add the key to `frontend/src/lib/i18n/en.ts`, then to `tr.ts`. `npm run check` fails until both have it. The in-app help page is also there, under `help`; keep it in step with `docs/guide/` when behaviour changes.
+Add the key to `frontend/src/lib/i18n/en.ts`, then to `tr.ts`. `npm run check` fails until both have it.
+
+## A documentation page
+
+The pages under `/docs` on the site are the files in `docs/guide/` and `docs/maintain/`; there is no second copy. Edit the Markdown, deploy, and the site has it.
+
+- **A new page:** add the file, then its name to the list in `frontend/src/lib/docs.ts`, which fixes the order. The first `# ` heading is its title in the menu. Link it from `docs/README.md` too, for readers on GitHub.
+- **A translation:** put a file of the same name in a `tr/` folder beside the English one (`docs/guide/tr/charts.md`). Without one the page is shown in English with a note. Only the user guide is translated.
+- **Links:** write them relative, as GitHub wants them (`datasets.md#what-the-model-sees`). On the site, links between these pages become routes and links to anything else in the repository go to GitHub. A link to a heading uses the anchor GitHub would make; in a Turkish page that is the Turkish heading.
+- **When behaviour changes,** change the English page and its Turkish twin in the same commit. `npm test` checks that every listed page exists and that no link on the site points at a page that does not; it cannot check that the two languages still say the same thing.
 
 ## A field on a model
 

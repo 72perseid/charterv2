@@ -27,6 +27,7 @@
 {#if data.charts.length === 0}
   <p class="empty">{t.charts.empty}</p>
 {:else}
+  <div class="table-wrap">
   <table>
     <thead>
       <tr>
@@ -44,9 +45,10 @@
           <td><a href="/datasets/{c.dataset_id}">{c.dataset_name}</a></td>
           <td><StatusChip status={c.current_status ?? 'pending'} /></td>
           <td class="num">{c.revision_count}</td>
-          <td>{formatDate(c.updated_at)}</td>
+          <td class="nowrap">{formatDate(c.updated_at)}</td>
         </tr>
       {/each}
     </tbody>
   </table>
+  </div>
 {/if}

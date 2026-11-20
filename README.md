@@ -4,7 +4,7 @@ A tabular dataset and a sentence in; a Vega-Lite chart, and the full record of h
 
 Chart-er is built for archaeologists and students who work in Excel and have never written a plotting script. A signed-in user uploads a CSV or Excel file, picks columns, describes the chart in plain language, and a language model of the user's choosing, paid for with the user's own key, writes the Vega-Lite specification. Every revision is stored with the exact request that produced it, so any chart can be traced back to its inputs and replayed.
 
-**Documentation:** [docs/](docs/README.md) holds a user guide (getting started, datasets, period columns, models, charts, troubleshooting) and the maintainer's pages (development, changing things, deployment, operations). A shortened guide is inside the app under Help, in both languages.
+**Documentation:** [docs/](docs/README.md) holds a user guide (getting started, datasets, period columns, models, charts, troubleshooting) and pages for running your own copy with Docker and for working on the code. The same pages are on the site under Docs, readable without an account; the user guide is also in Turkish.
 
 The design and its reasons are in [SPEC.md](SPEC.md); one short record per decision is in [docs/adr](docs/adr/README.md); the map of the code is [docs/architecture.md](docs/architecture.md); the API is described by [docs/openapi.json](docs/openapi.json). The interface is in English and Turkish.
 

@@ -23,7 +23,7 @@
       <a class="button" href="/login">{t.landing.signIn}</a>
       <a class="button quiet" href="/register">{t.landing.register}</a>
     {/if}
-    <a class="how" href="/help">{t.landing.help}</a>
+    <a class="how" href="/docs">{t.landing.docs}</a>
   </p>
 </main>
 

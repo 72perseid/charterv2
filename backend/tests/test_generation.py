@@ -224,6 +224,34 @@ def test_provider_401_fails_with_actionable_message(ready, stub):
     assert revision["prompt_version"] == "p2026-11-b" and revision["duration_ms"] is not None
 
 
+def test_charts_are_listed_with_the_one_worked_on_last_first(ready, stub):
+    client, dataset_id = ready
+    set_key(client, stub, "sk-order")
+    first = create_chart(client, dataset_id, title="first").json()
+    second = create_chart(client, dataset_id, title="second").json()
+    titles = [c["title"] for c in client.get("/api/charts").json()]
+    assert titles == ["second", "first"]
+
+    # A new revision of the older chart brings it back to the top.
+    response = client.post(
+        f"/api/charts/{first['id']}/revisions",
+        json.dumps(
+            {
+                "parent_id": first["current_revision_id"] or first["revisions"][0]["id"],
+                "x_field": "Alan",
+                "y_field": "Sayı",
+                "color_field": None,
+                "prompt": "yatay yap",
+            }
+        ),
+        content_type="application/json",
+    )
+    assert response.status_code == 201, response.content
+    titles = [c["title"] for c in client.get("/api/charts").json()]
+    assert titles == ["first", "second"]
+    assert second["id"] != first["id"]
+
+
 def test_second_revision_gets_parent_spec_in_prompt(ready, stub):
     client, dataset_id = ready
     chart = create_chart(client, dataset_id).json()

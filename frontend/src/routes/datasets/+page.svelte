@@ -67,6 +67,7 @@
 {#if data.datasets.length === 0}
   <p class="empty">{t.datasets.empty}</p>
 {:else}
+  <div class="table-wrap">
   <table>
     <thead>
       <tr>
@@ -84,11 +85,12 @@
           <td class="num">{d.status === 'done' ? formatInt(d.row_count) : ''}</td>
           <td class="num">{d.status === 'done' ? formatInt(d.column_count) : ''}</td>
           <td><StatusChip status={d.status} /></td>
-          <td>{formatDate(d.created_at)}</td>
+          <td class="nowrap">{formatDate(d.created_at)}</td>
         </tr>
       {/each}
     </tbody>
   </table>
+  </div>
 {/if}
 
 <style>

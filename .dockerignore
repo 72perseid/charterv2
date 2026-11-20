@@ -1,0 +1,9 @@
+# For the frontend image, whose build context is the repository root.
+# The backend image has its own context (backend/).
+.git
+.github
+backend
+deploy
+**/node_modules
+frontend/build
+frontend/.svelte-kit

@@ -171,7 +171,8 @@ th.num {
   padding: 0.65rem 1rem;
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
 }
 
 .shell-header .brand {
@@ -221,8 +222,38 @@ main {
 
 .page-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+/* A table wider than the page scrolls inside its own box; the page never does. */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* Phones: brand, language and sign-out on one line, the navigation on the next. */
+@media (max-width: 40rem) {
+  .shell-header .who {
+    display: none;
+  }
+  .shell-header nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+  }
+  .shell-header button {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.9rem;
+  }
+  main {
+    padding-top: 1rem;
+  }
 }

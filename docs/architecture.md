@@ -32,7 +32,7 @@ gunicorn ──── PostgreSQL 16 ◄──── worker (manage.py runworker)
 | Charts, revisions, export bundle | `charts/` | `routes/charts` |
 | Prompt, provider call, validation, worker | `generation/`, `prompts/` | — |
 | Strings | — | `lib/i18n/` (`en.ts`, `tr.ts`) |
-| Help for users | — | `routes/help`, text in `lib/i18n/`; long form in `docs/guide/` |
+| Documentation on the site | — | `routes/docs`, `lib/docs.ts`; the text is `docs/guide/` and `docs/maintain/` |
 | The one HTTP client | — | `lib/api.ts` |
 
 ## Access rules

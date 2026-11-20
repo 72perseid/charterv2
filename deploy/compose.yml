@@ -62,7 +62,10 @@ services:
     restart: unless-stopped
 
   caddy:
-    build: ../frontend
+    # The context is the repository root: the site's /docs pages are built from docs/.
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
     ports:
       - "${CADDY_BIND:-127.0.0.1:8080}:80"
     volumes:

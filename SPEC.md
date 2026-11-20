@@ -65,6 +65,7 @@ Frontend (`package.json`):
 |---|---|
 | svelte 5, @sveltejs/kit, @sveltejs/adapter-static | framework |
 | vega, vega-lite, vega-embed | rendering |
+| marked | Markdown to HTML for the `/docs` pages (ADR 0020) |
 | typescript, vite | tooling (Vite is SvelteKit's build tool) |
 | vitest | tests |
 
@@ -227,7 +228,7 @@ SvelteKit, static adapter, all routes client-rendered behind a `+layout.ts` that
 | `/charts` | Table of charts with dataset, current revision status, updated |
 | `/charts/[id]` | The chart viewer: canvas, revision list down the side with status and prompt, revision form pre-filled from the selected revision, tabs for data and for the stored request/response, export PNG/SVG/JSON/bundle |
 | `/settings` | Model configuration (base URL, model, key, temperature, test button), account, sign out |
-| `/help` | The user guide, shortened: files, period columns, the model, describing a chart, what leaves the server, common failures. Public, so the landing page links to it. Its text lives in the i18n files like every other string; the long form is `docs/guide/` |
+| `/docs` `/docs/[section]/[page]` | The documentation: the Markdown files of `docs/guide/` and `docs/maintain/`, read at build time and rendered in the browser (ADR 0020). A page with a translation in a `tr/` folder beside it is shown in Turkish when the interface is; the others say they are in English only. Public, so the landing page links to it. `/help` redirects here |
 
 Components, all hand-written: `AppShell` (one nav definition), `DataTable`, `UploadForm`, `ProfileTable`, `ChartCanvas` (wraps vega-embed, receives spec and rows, sets `data.values`), `RevisionList`, `RevisionForm`, `StatusChip`, `PrivacyLevel`.
 
@@ -241,7 +242,7 @@ Design: keep the v1 tokens (teal primary `hsl(174 72% 45%)`, accent `hsl(174 60%
 
 ## 9. Deployment
 
-`deploy/compose.yml` services: `postgres:16` with a named volume; `api` built from `backend/Dockerfile`, runs migrations then gunicorn; `worker` same image, command `manage.py runworker`; `caddy` with `deploy/Caddyfile` serving `frontend/build` and proxying `/api` and `/files`. The compose file is a complete system: a reviewer runs it on a laptop and the compose Caddy answers on port 8080, plain HTTP.
+`deploy/compose.yml` services: `postgres:16` with a named volume; `api` built from `backend/Dockerfile`, runs migrations then gunicorn; `worker` same image, command `manage.py runworker`; `caddy` with `deploy/Caddyfile`, built from `frontend/Dockerfile` with the repository root as context (the site's documentation is built from `docs/`), serving `frontend/build` and proxying `/api` and `/files`. The compose file is a complete system: a reviewer runs it on a laptop and the compose Caddy answers on port 8080, plain HTTP.
 
 The stack publishes exactly one port, the compose Caddy, bound to `127.0.0.1:8080`. Postgres, `api`, and `worker` sit on a compose-internal network and publish nothing. The `.env` value `CADDY_BIND` sets the published address; the example file uses `127.0.0.1:8080`, and an operator who wants the compose Caddy to own TLS directly sets it to `:80` and `:443` with a hostname in the Caddyfile.
 
@@ -308,7 +309,7 @@ chart-er/
   deploy/
     compose.yml  Caddyfile  .env.example
   docs/
-    README.md (index)  guide/ (for users)  maintain/ (for the maintainer)
+    README.md (index)  guide/ (for users; tr/ holds the Turkish pages)  maintain/ (for the maintainer)
     architecture.md  openapi.json  adr/
   README.md  LICENSE (MIT)  CITATION.cff
 ```

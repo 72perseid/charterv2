@@ -44,8 +44,19 @@
 
 <style>
   .scroll {
-    overflow-x: auto;
+    overflow: auto;
+    max-height: 30rem;
+    border: 1px solid var(--line);
     border-radius: var(--radius);
+  }
+  table {
+    border: 0;
+  }
+  thead th {
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    box-shadow: inset 0 -1px 0 var(--line);
   }
   th,
   td {

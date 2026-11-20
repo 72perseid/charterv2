@@ -195,10 +195,14 @@
     <fieldset class="field prices">
       <legend>{s.model.prices}</legend>
       <div class="price-row">
-        <label for="input_price">{s.model.inputPrice}</label>
-        <input id="input_price" type="number" min="0" step="0.01" bind:value={input_price} oninput={() => (pricesFromProvider = false)} />
-        <label for="output_price">{s.model.outputPrice}</label>
-        <input id="output_price" type="number" min="0" step="0.01" bind:value={output_price} oninput={() => (pricesFromProvider = false)} />
+        <div>
+          <label for="input_price">{s.model.inputPrice}</label>
+          <input id="input_price" type="number" min="0" step="0.01" bind:value={input_price} oninput={() => (pricesFromProvider = false)} />
+        </div>
+        <div>
+          <label for="output_price">{s.model.outputPrice}</label>
+          <input id="output_price" type="number" min="0" step="0.01" bind:value={output_price} oninput={() => (pricesFromProvider = false)} />
+        </div>
       </div>
       <small>{pricesFromProvider ? s.model.pricesFromProvider : s.model.pricesHint}</small>
     </fieldset>
@@ -276,12 +280,9 @@
   }
   .price-row {
     display: grid;
-    grid-template-columns: auto 8rem auto 8rem;
-    gap: 0.5rem 0.6rem;
-    align-items: center;
-  }
-  .price-row label {
-    margin: 0;
+    grid-template-columns: repeat(2, minmax(0, 10rem));
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
   }
   .model-row {
     display: flex;

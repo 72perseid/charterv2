@@ -6,7 +6,7 @@
     type PeriodDates,
     type PeriodRequest
   } from '$lib/api';
-  import { formatInt } from '$lib/format';
+  import { formatInt, formatStat } from '$lib/format';
   import { t } from '$lib/i18n';
 
   let {
@@ -31,6 +31,7 @@
 
   // The server refuses to order more distinct values than this (datasets/chronology.py).
   const MAX_PERIOD_VALUES = 200;
+  const MAX_PERIOD_LENGTH = 60;
 
   let editing = $state<string | null>(null);
   let draft = $state('');
@@ -120,7 +121,7 @@
     switch (c.type) {
       case 'integer':
       case 'number':
-        return `${c.min} – ${c.max}, mean ${c.mean}, median ${c.median}`;
+        return `${formatStat(c.min)} – ${formatStat(c.max)}, mean ${formatStat(c.mean)}, median ${formatStat(c.median)}`;
       case 'date':
         return `${String(c.min).slice(0, 10)} – ${String(c.max).slice(0, 10)}`;
       case 'boolean':
@@ -142,7 +143,13 @@
   }
 
   function canBePeriod(c: ColumnProfile): boolean {
-    return c.type === 'string' && c.distinct_count >= 2 && c.distinct_count <= MAX_PERIOD_VALUES;
+    // Long values are notes, citations or links, never period names: no offer on those rows.
+    return (
+      c.type === 'string' &&
+      c.distinct_count >= 2 &&
+      c.distinct_count <= MAX_PERIOD_VALUES &&
+      (c.max_length ?? 0) <= MAX_PERIOD_LENGTH
+    );
   }
 
   function edit(c: ColumnProfile) {
@@ -203,6 +210,7 @@
   </form>
 {/snippet}
 
+<div class="table-wrap">
 <table class="profile">
   <thead>
     <tr>
@@ -226,17 +234,17 @@
         <td><span class="type {c.type}">{t.types[c.type]}</span></td>
         <td class="num">{formatInt(c.null_count)}</td>
         <td class="num">{formatInt(c.distinct_count)}</td>
-        <td class="summary" title={c.type === 'period' ? summary(c) : undefined}>{summary(c)}</td>
+        <td class="summary" title={summary(c)}>{summary(c)}</td>
         {#if onperiod}
           <td class="act">
             {#if c.type === 'period'}
               <button type="button" class="quiet small" onclick={() => edit(c)}>{p.edit}</button>
             {:else if canBePeriod(c)}
-              <button type="button" class="quiet small" onclick={() => choose(c.name, true)}>
+              <button type="button" class="offer" onclick={() => choose(c.name, true)}>
                 {p.treat}
               </button>
               {#if ondate && numeric.length}
-                <button type="button" class="quiet small" onclick={() => date(c)}>{p.dates}</button>
+                <button type="button" class="offer" onclick={() => date(c)}>{p.dates}</button>
               {/if}
             {/if}
           </td>
@@ -353,6 +361,7 @@
     {/each}
   </tbody>
 </table>
+</div>
 
 <style>
   .mono {
@@ -379,7 +388,7 @@
   .summary {
     color: var(--ink-muted);
     font-size: 0.9rem;
-    max-width: 28rem;
+    max-width: 22rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -391,6 +400,19 @@
   .small {
     font-size: 0.8rem;
     padding: 0.15rem 0.5rem;
+  }
+  /* Offered on every text column, so it is a quiet link, not a row of buttons. */
+  .offer {
+    background: none;
+    border: 0;
+    padding: 0.1rem 0.3rem;
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .offer:hover {
+    color: var(--primary-ink);
   }
   .editor h3 {
     font-size: 0.95rem;

@@ -14,7 +14,7 @@
     { href: '/datasets', label: t.nav.datasets },
     { href: '/charts', label: t.nav.charts },
     { href: '/settings', label: t.nav.settings },
-    { href: '/help', label: t.nav.help }
+    { href: '/docs', label: t.nav.docs }
   ];
 
   function isCurrent(href: string): boolean {

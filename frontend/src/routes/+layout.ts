@@ -7,7 +7,7 @@ import type { LayoutLoad } from './$types';
 export const ssr = false;
 export const prerender = false;
 
-const PUBLIC = new Set(['/', '/login', '/register', '/help']);
+const PUBLIC = new Set(['/', '/login', '/register']);
 
 export const load: LayoutLoad = async ({ url }) => {
   if (session.user === null) {
@@ -18,7 +18,9 @@ export const load: LayoutLoad = async ({ url }) => {
     }
   }
   const signedIn = session.user !== null;
-  if (!signedIn && !PUBLIC.has(url.pathname)) {
+  // The documentation is readable without an account.
+  const open = PUBLIC.has(url.pathname) || url.pathname === '/docs' || url.pathname.startsWith('/docs/');
+  if (!signedIn && !open) {
     redirect(302, '/login?next=' + encodeURIComponent(url.pathname));
   }
   if (signedIn && (url.pathname === '/login' || url.pathname === '/register')) {

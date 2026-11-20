@@ -1,10 +1,7 @@
 // Every user-visible string lives here (SPEC §8); tr.ts mirrors it. No i18n library.
-// One section of the help page. Declared so that every section has the same shape in both languages.
-export type HelpSection = { id: string; title: string; paragraphs: string[]; points: string[] };
-
 export const en = {
   appName: 'Chart-er',
-  nav: { datasets: 'Datasets', charts: 'Charts', settings: 'Settings', help: 'Help', signOut: 'Sign out' },
+  nav: { datasets: 'Datasets', charts: 'Charts', settings: 'Settings', docs: 'Docs', signOut: 'Sign out' },
   language: { label: 'Language', en: 'English', tr: 'Türkçe' },
   landing: {
     title: 'Chart-er',
@@ -19,7 +16,7 @@ export const en = {
     signIn: 'Sign in',
     register: 'Create an account',
     source: 'Source code',
-    help: 'How it works'
+    docs: 'Documentation'
   },
   auth: {
     signIn: 'Sign in',
@@ -162,6 +159,9 @@ export const en = {
       y: 'Y axis',
       color: 'Color (optional)',
       none: '— none —',
+      choose: '— choose a column —',
+      noModel: 'No model is connected yet, so a chart cannot be made.',
+      noModelLink: 'Connect one in Settings',
       show: 'What to show',
       shows: {
         auto: 'Let the model decide',
@@ -273,119 +273,19 @@ export const en = {
       signOut: 'Sign out'
     }
   },
-  help: {
-    title: 'Help',
-    lead: 'How to get from a spreadsheet to a chart, and what Chart-er does on the way.',
-    contents: 'On this page',
-    sections: [
-      {
-        id: 'start',
-        title: 'In five steps',
-        paragraphs: [],
-        points: [
-          'Datasets: upload a CSV or Excel file, or press "Try an example" to get a small invented table of finds.',
-          'Look at the column table. Check that numbers are numbers and that the column names are right.',
-          'Settings: enter the address and key of a language model, load the model list, save, and test the connection.',
-          'Open the dataset, choose the X and Y columns, say what you want to see, and create the chart.',
-          'Revise it with a sentence ("make it horizontal") until it is right, then export PNG or SVG.'
-        ]
-      },
-      {
-        id: 'files',
-        title: 'Your file',
-        paragraphs: [
-          'One table per file: column names in the first row, one record per row. CSV, TSV and xlsx work, up to 20 MB, 100 000 rows and 200 columns. Save old .xls files as .xlsx first.',
-          'Chart-er works out the encoding, the delimiter, the decimal mark, the sheet and the header row, and shows each under "How it was read". Semicolon files with decimal commas, as Turkish Excel writes them, are read correctly. Dates are read day first.'
-        ],
-        points: [
-          'A number column shown as "text" has cells that are not numbers ("?", "12 cm"). Clean them in the file and upload again.',
-          'Column names that are really a title or a data row: change "Header row" on the dataset page. It counts from 0.',
-          'Garbled Turkish letters: save the file as UTF-8.'
-        ]
-      },
-      {
-        id: 'periods',
-        title: 'Period columns',
-        paragraphs: [
-          'A column of archaeological periods ("Late Bronze Age", "Helenistik", "EB II", "MÖ 5. yüzyıl", "1500 BC") gets the type "period", and every chart that uses it runs from oldest to newest, not alphabetically. Names are dated from PeriodO, a gazetteer of published period definitions, for the region your column points to.',
-          'Press "Order and sources" on the column to see the years each value was given and which publication they come from. Check this before you present a chart. There you can also correct it:'
-        ],
-        points: [
-          'Say what a value means: "ECh" means "Early Chalcolithic", "Evre 7" means "720-650 BC".',
-          '"Dates from columns": use the start and end year columns of your own table.',
-          'Type the whole order by hand, one value per line. Best for the phases of one site.',
-          'Ask your model about the values that could not be placed. Only this button sends the column\'s values to the model, and it asks first.',
-          '"Not periods" switches it off; "Treat as periods" switches it on for a column that was not recognised.'
-        ]
-      },
-      {
-        id: 'model',
-        title: 'The model',
-        paragraphs: [
-          'Chart-er has no language model of its own. You connect one under Settings with your own key and pay your provider for what you use: a fraction of a cent per chart on a small model. A chat subscription does not include an API key; you get one from the provider\'s developer pages.',
-          'The base URL is the provider\'s address up to and including /v1, for example https://api.openai.com/v1 or https://openrouter.ai/api/v1. A small, inexpensive model is enough. Leave the temperature at 0 for the most repeatable charts.',
-          'Your key is stored encrypted and used only to call the address you entered. Whoever runs this server could decrypt it, so use a key with a spending limit.'
-        ],
-        points: []
-      },
-      {
-        id: 'chart',
-        title: 'Describing a chart',
-        paragraphs: [
-          'Pick the columns, then say what you want as you would to a colleague, in English or Turkish: "Total finds per period as bars", "Weight by trench, coloured by ware". Name the kind of chart when you care about it. One chart per request: panels and layered charts are not supported.',
-          'Two choices can be made in the form so that they do not depend on how the model reads your sentence. Chart-er applies them to the chart itself, whatever the model answers.'
-        ],
-        points: [
-          '"What to show". Total: for amounts that add up, such as counts and weights. Average: a typical value per group. Number of rows: how many records each group has. Distribution: a box plot, for measurements such as lengths. Every row as a point: the raw values.',
-          'Do not add up measurements. The total of forty bone lengths means nothing; choose Distribution or Average.',
-          '"Only rows where … equals …" limits the chart to one value of one column, for example Region equals Thessaly. A value that no row has is refused at once.'
-        ]
-      },
-      {
-        id: 'result',
-        title: 'Reading the result',
-        paragraphs: [
-          'The chart page has four tabs: the chart, the rows behind it, the Vega-Lite specification, and the exact request and response with the model, the tokens and the estimated cost.',
-          'Chart-er checks the model\'s answer and lists every change it made under "Corrections applied to the model\'s answer": a period column put in order, a misspelled column name replaced, the aggregate changed to your choice. When a chart surprises you, read that list first. An answer that is not about your columns at all is rejected with a reason, not repaired.'
-        ],
-        points: []
-      },
-      {
-        id: 'revise',
-        title: 'Revisions and export',
-        paragraphs: [
-          'Every change is a new revision; nothing is overwritten. The model also sees the previous specification, so "use a log scale" changes only that. Click a revision in the list to look at it, start a new one from it, or make it the current one.',
-          'Export PNG for slides, SVG for print, or the specification as JSON. The reproducibility bundle is one file with the dataset profile and every revision\'s request, response and specification. It holds neither your rows nor your key, and it is what to keep beside a published figure.'
-        ],
-        points: []
-      },
-      {
-        id: 'privacy',
-        title: 'What leaves this server',
-        paragraphs: [
-          'The model never receives your file. It receives a profile of the dataset, and only at the address you entered in Settings. You set how much the profile says, per dataset, under "What the model sees":'
-        ],
-        points: [
-          'Minimal: column names, types, the number of rows, empty and distinct counts.',
-          'Statistics (the default): also the ranges of number and date columns and the five most frequent values of text columns.',
-          'Sample: also ten rows of the table. This is the only level at which raw rows are sent.',
-          'Identifier columns contribute no values, and text values longer than 40 characters are left out, at every level.'
-        ]
-      },
-      {
-        id: 'problems',
-        title: 'When something fails',
-        paragraphs: ['A failed revision says why, and its "Request and response" tab shows what the model answered.'],
-        points: [
-          '"Endpoint returned 401": the key is wrong or belongs to another provider. "404": check the base URL (it usually ends in /v1) and the model name. "429": rate limited, or the account has no credit.',
-          '"The endpoint did not answer in time": try again. A model on your own computer is still loading on its first call.',
-          '"The answer is not JSON" or "Not valid Vega-Lite": the model made a mistake twice. Try again, simplify the request, choose "What to show" in the form, or use another model.',
-          '"The answer uses field names that are not in the profile": the model invented columns. With a local model the request was probably cut off; raise its context length (for Ollama, OLLAMA_CONTEXT_LENGTH=16384).',
-          'The chart adds up measurements: choose Distribution or Average. It shows all the data: use "Only rows where". The periods are out of order: correct them on the dataset page, then revise the chart.',
-          'Limits: 20 uploads and 60 revisions per hour.'
-        ]
-      }
-    ] as HelpSection[]
+  docs: {
+    title: 'Documentation',
+    lead: 'How to use Chart-er, how to run your own copy, and how to work on it.',
+    sections: { guide: 'Using Chart-er', maintain: 'Running and changing Chart-er' },
+    sectionLead: {
+      guide: 'For the person with a spreadsheet. No programming is assumed.',
+      maintain: 'For whoever installs their own copy or works on the code.'
+    },
+    englishOnly: 'This page is available in English only.',
+    contents: 'Pages',
+    previous: 'Previous',
+    next: 'Next',
+    home: 'All pages'
   },
   status: { pending: 'Pending', running: 'Running', done: 'Done', failed: 'Failed' },
   errors: {

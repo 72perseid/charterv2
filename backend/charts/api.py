@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Count, Max, Prefetch
+from django.db.models import Count, F, Max, Prefetch
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -34,6 +34,9 @@ def chart_queryset(user):
         Chart.objects.filter(user=user)
         .select_related("dataset", "current_revision")
         .annotate(revision_count=Count("revisions"), updated_at=Max("revisions__created_at"))
+        # An aggregate drops the model's default ordering, so it is stated: the chart
+        # worked on last comes first.
+        .order_by(F("updated_at").desc(nulls_last=True), "-pk")
         .prefetch_related(
             Prefetch("revisions", queryset=ChartRevision.objects.order_by("revision_no"))
         )
